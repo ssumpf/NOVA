@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
  * Copyright (C) 2014 Udo Steinberg, FireEye, Inc.
- * Copyright (C) 2012-2018 Alexander Boettcher, Genode Labs GmbH.
+ * Copyright (C) 2012-2020 Alexander Boettcher, Genode Labs GmbH.
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -131,6 +131,29 @@ Ec::Ec (Pd *own, mword sel, Pd *p, void (*f)(), unsigned c, unsigned e, mword u,
 
 Ec::Ec (Pd *own, Pd *p, void (*f)(), unsigned c, Ec *clone) : Kobject (EC, static_cast<Space_obj *>(own), 0, 0xd, free, pre_free), cont (f), regs (clone->regs), rcap (clone), utcb (clone->utcb), pd (p), partner (nullptr), prev (nullptr), next (nullptr), fpu (clone->fpu), cpu (static_cast<uint16>(c)), glb (!!f), evt (clone->evt), timeout (this), user_utcb (0), xcpu_sm (clone->xcpu_sm), pt_oom(clone->pt_oom)
 {
+    // Make sure we have a PTAB for this CPU in the PD
+    pd->Space_mem::init (pd->quota, c);
+
+    regs.vtlb = nullptr;
+    regs.vmcs = nullptr;
+    regs.vmcb = nullptr;
+
+    if (pt_oom && !pt_oom->add_ref())
+        pt_oom = nullptr;
+}
+
+Ec::Ec (Pd *own, Pd *p, void (*f)(), unsigned c, Ec *clone, Pt *pt) : Kobject (EC, static_cast<Space_obj *>(own), clone->node_base, 0xd, free, pre_free), cont (f), regs (clone->regs), rcap (nullptr), utcb (clone->utcb), pd (p), partner (nullptr), prev (nullptr), next (nullptr), fpu (clone->fpu), cpu (static_cast<uint16>(c)), glb (!!f), evt (clone->evt), timeout (this), user_utcb (clone->user_utcb), xcpu_sm (clone->xcpu_sm), pt_oom(pt)
+{
+    if (EXPECT_FALSE((fpowner == clone) && clone->fpu && !Cmdline::fpu_eager)) {
+        Fpu::enable();
+        save_fpu();
+        Fpu::disable();
+    }
+
+    clone->fpu = nullptr;
+    clone->utcb = nullptr;
+    clone->user_utcb = 0;
+
     // Make sure we have a PTAB for this CPU in the PD
     pd->Space_mem::init (pd->quota, c);
 

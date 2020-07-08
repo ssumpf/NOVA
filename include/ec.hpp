@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
  * Copyright (C) 2014 Udo Steinberg, FireEye, Inc.
- * Copyright (C) 2012-2018 Alexander Boettcher, Genode Labs GmbH.
+ * Copyright (C) 2012-2020 Alexander Boettcher, Genode Labs GmbH.
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -39,6 +39,7 @@
 class Utcb;
 class Sm;
 class Pt;
+class Sys_ec_ctrl;
 
 class Ec : public Kobject, public Refcount, public Queue<Sc>
 {
@@ -221,6 +222,7 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
         Ec (Pd *, void (*)(), unsigned);
         Ec (Pd *, mword, Pd *, void (*)(), unsigned, unsigned, mword, mword, Pt *);
         Ec (Pd *, Pd *, void (*f)(), unsigned, Ec *);
+        Ec (Pd *, Pd *, void (*f)(), unsigned, Ec *, Pt *);
 
         ~Ec();
 
@@ -480,4 +482,6 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
 
         template <void(*C)()>
         static void check(mword, bool = true);
+
+        bool migrate(Capability &, Ec *, Sys_ec_ctrl const &);
 };

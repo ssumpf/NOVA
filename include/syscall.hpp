@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
  * Copyright (C) 2014 Udo Steinberg, FireEye, Inc.
- * Copyright (C) 2014-2015 Alexander Boettcher, Genode Labs GmbH.
+ * Copyright (C) 2014-2020 Alexander Boettcher, Genode Labs GmbH.
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -187,10 +187,16 @@ class Sys_ec_ctrl : public Sys_regs
         inline unsigned long cnt() const { return ARG_2; }
 
         ALWAYS_INLINE
-        inline unsigned op() const { return flags() & 0x3; }
+        inline unsigned op() const { return flags() & 0x7; }
 
         ALWAYS_INLINE
         inline bool state() const { return ARG_2 == 1; }
+
+        ALWAYS_INLINE
+        inline unsigned cpu() const { return ARG_2 & 0xfff; }
+
+        ALWAYS_INLINE
+        inline Crd crd() const { return Crd (ARG_3); }
 };
 
 class Sys_sc_ctrl : public Sys_regs

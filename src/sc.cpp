@@ -6,6 +6,7 @@
  *
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
  * Copyright (C) 2014 Udo Steinberg, FireEye, Inc.
+ * Copyright (C) 2012-2020 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -54,6 +55,9 @@ Sc::Sc (Pd *own, Ec *e, unsigned c, Sc *x) : Kobject (SC, static_cast<Space_obj 
 {
     trace (TRACE_SYSCALL, "SC:%p created (EC:%p CPU:%#x P:%#x Q:%#llx) - xCPU", this, e, c, prio, budget / (Lapic::freq_bus / 1000));
 }
+
+Sc::Sc (Pd *own, Ec *e, Sc &s) : Kobject (SC, static_cast<Space_obj *>(own), s.node_base, 0x1, free, pre_free), ec (e), cpu (e->cpu), prio (s.prio), disable (s.disable), budget (s.budget), time (s.time), time_m (s.time_m), left (s.left)
+{ }
 
 void Sc::ready_enqueue (uint64 t, bool inc_ref, bool use_left)
 {

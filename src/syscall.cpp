@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
  * Copyright (C) 2014 Udo Steinberg, FireEye, Inc.
- * Copyright (C) 2012-2018 Alexander Boettcher, Genode Labs GmbH
+ * Copyright (C) 2012-2020 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -222,6 +222,78 @@ void Ec::reply (void (*c)(), Sm * sm)
         Sc::current->ec->activate();
 
     ec->make_current();
+}
+
+bool Ec::migrate(Capability &cap_e, Ec *ec_r, Sys_ec_ctrl const &r)
+{
+    if (EXPECT_FALSE (!Hip::cpu_online (r.cpu())))
+        return false;
+
+    if (EXPECT_FALSE (cap_e.obj()->type() != Kobject::EC))
+        return false;
+
+    Ec * const ec_m = static_cast<Ec *>(cap_e.obj());
+
+    if (ec_m->pd->quota.hit_limit(4)) {
+        Cpu::hazard |= HZD_OOM;
+        return false;
+    }
+
+    if (EXPECT_FALSE((r.crd().type() != Crd::OBJ) || r.crd().order() != 0))
+        return false;
+
+    if (EXPECT_FALSE(ec_m->xcpu_sm || !ec_m->utcb || ec_m != ec_r))
+        return false;
+
+    mword const pt_sel = r.ec() + 1;
+    mword const sc_sel = r.ec() + 2;
+
+    Capability cap_pt = Space_obj::lookup (pt_sel);
+    if (EXPECT_FALSE (cap_pt.obj()->type() != Kobject::PT))
+        return false;
+
+    Capability cap_sc = Space_obj::lookup (sc_sel);
+    if (EXPECT_FALSE (cap_sc.obj()->type() != Kobject::SC))
+        return false;
+
+    Pt * const pt = static_cast<Pt *>(cap_pt.obj());
+    Sc * const sc = static_cast<Sc *>(cap_sc.obj());
+
+    if ((pt->ec->cpu != r.cpu()) || (sc->ec != ec_m))
+        return false;
+
+    Ec *new_ec = new (*ec_m->pd) Ec (Pd::current, ec_m->pd, ec_m->cont, r.cpu(), ec_m, pt);
+    Sc *new_sc = new (*new_ec->pd) Sc (Pd::current, new_ec, *sc);
+
+    Pd::current->revoke<Space_obj>(r.ec(), 0, 0x1f, true, false);
+    if (!Space_obj::insert_root (Pd::current->quota, new_ec)) {
+        trace (TRACE_ERROR, "migrated EC not added to Space_obj");
+        delete new_sc;
+        Rcu::call(new_ec); /* due to fpu, utcb */
+        return false;
+    }
+
+    Pd::current->revoke<Space_obj>(sc_sel, 0, 0x1f, true, false);
+    if (!Space_obj::insert_root (Pd::current->quota, new_sc)) {
+        trace (TRACE_ERROR, "migrated SC not added to Space_obj");
+        Pd::current->revoke<Space_obj>(r.ec(), 0, 0x1f, true, false);
+        delete new_sc;
+        Rcu::call(new_ec); /* due to fpu, utcb */
+        return false;
+    }
+
+    Crd const crd = r.crd();
+    Crd dst_crd { Crd::OBJ, new_ec->evt + crd.base(), crd.order(), crd.attr() };
+    Crd src_crd { Crd::OBJ, r.ec(), crd.order(), crd.attr() };
+
+    new_ec->pd->del_crd (Pd::current, dst_crd, src_crd);
+
+    if (Cpu::hazard & HZD_OOM)
+        trace (0, "Delegation of migrated EC cap failed");
+
+    new_sc->remote_enqueue();
+
+    return true;
 }
 
 void Ec::sys_reply()
@@ -744,6 +816,23 @@ void Ec::sys_ec_ctrl()
             Sc::schedule (false, true);
             break;
 
+        case 4: /* migrate */
+        {
+            if (!current->rcap)
+                sys_finish<Sys_regs::BAD_PAR>();
+
+            Capability cap = Space_obj::lookup (r->ec());
+
+            if (!Ec::current->migrate(cap, current->rcap, *r)) {
+                if (!(Cpu::hazard & HZD_OOM))
+                    sys_finish<Sys_regs::BAD_PAR>();
+
+                Cpu::hazard &= ~HZD_OOM;
+                sys_finish<Sys_regs::QUO_OOM>();
+            }
+
+            break;
+        }
         default:
             sys_finish<Sys_regs::BAD_PAR>();
     }
