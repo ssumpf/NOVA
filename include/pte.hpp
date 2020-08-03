@@ -25,7 +25,7 @@
 #include "buddy.hpp"
 #include "x86.hpp"
 
-template <typename P, typename E, unsigned L, unsigned B, bool F>
+template <typename P, typename E, unsigned L, unsigned B, bool F, bool LEV>
 class Pte
 {
     protected:
@@ -35,9 +35,6 @@ class Pte
 
         ALWAYS_INLINE
         inline bool present() const { return val & P::PTE_P; }
-
-        ALWAYS_INLINE
-        inline bool super() const { return val & P::PTE_S; }
 
         ALWAYS_INLINE
         inline mword attr() const { return static_cast<mword>(val) & PAGE_MASK; }

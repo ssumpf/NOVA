@@ -22,7 +22,7 @@
 
 #include "pte.hpp"
 
-class Dpt : public Pte<Dpt, uint64, 4, 9, true>
+class Dpt : public Pte<Dpt, uint64, 4, 9, true, false>
 {
     public:
         static mword ord;
@@ -34,7 +34,12 @@ class Dpt : public Pte<Dpt, uint64, 4, 9, true>
             DPT_S   = 1UL << 7,
 
             PTE_P   = DPT_R | DPT_W,
-            PTE_S   = DPT_S,
             PTE_N   = DPT_R | DPT_W,
         };
+
+        ALWAYS_INLINE
+        inline bool super(unsigned long) const { return val & DPT_S; }
+
+        ALWAYS_INLINE
+        static inline uint64 pte_s(unsigned long const l) { return l ? DPT_S : 0; }
 };

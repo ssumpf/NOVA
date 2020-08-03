@@ -26,9 +26,9 @@
 class Exc_regs;
 
 #ifdef __i386__
-class Vtlb : public Pte<Vtlb, uint32, 2, 10, false>
+class Vtlb : public Pte<Vtlb, uint32, 2, 10, false, false>
 #else
-class Vtlb : public Pte<Vtlb, uint64, 3,  9, false>
+class Vtlb : public Pte<Vtlb, uint64, 3,  9, false, false>
 #endif
 {
     private:
@@ -64,7 +64,6 @@ class Vtlb : public Pte<Vtlb, uint64, 3,  9, false>
             TLB_M   = 1UL << 10,
 
             PTE_P   = TLB_P,
-            PTE_S   = TLB_S,
         };
 
         enum Reason
@@ -73,6 +72,12 @@ class Vtlb : public Pte<Vtlb, uint64, 3,  9, false>
             GLA_GPA,
             GPA_HPA
         };
+
+        ALWAYS_INLINE
+        inline bool super() const { return val & TLB_S; }
+
+        ALWAYS_INLINE
+        static inline mword pte_s(unsigned long const l) { return l ? TLB_S : 0; }
 
         ALWAYS_INLINE
         inline Vtlb()

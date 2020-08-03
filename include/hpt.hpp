@@ -24,7 +24,7 @@
 #include "arch.hpp"
 #include "pte.hpp"
 
-class Hpt : public Pte<Hpt, mword, PTE_LEV, PTE_BPL, false>
+class Hpt : public Pte<Hpt, mword, PTE_LEV, PTE_BPL, false, false>
 {
     private:
         ALWAYS_INLINE
@@ -65,10 +65,14 @@ class Hpt : public Pte<Hpt, mword, PTE_LEV, PTE_BPL, false>
 
         enum {
             PTE_P   = HPT_P,
-            PTE_S   = HPT_S,
             PTE_N   = HPT_A | HPT_U | HPT_W | HPT_P,
         };
 
+        ALWAYS_INLINE
+        inline bool super(unsigned long) const { return val & HPT_S; }
+
+        ALWAYS_INLINE
+        static inline mword pte_s(unsigned long const l) { return l ? mword(HPT_S) : 0; }
 
         ALWAYS_INLINE
         inline Paddr addr() const

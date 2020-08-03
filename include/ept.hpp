@@ -23,7 +23,7 @@
 #include "assert.hpp"
 #include "pte.hpp"
 
-class Ept : public Pte<Ept, uint64, 4, 9, false>
+class Ept : public Pte<Ept, uint64, 4, 9, false, false>
 {
     public:
         static mword ord;
@@ -37,9 +37,14 @@ class Ept : public Pte<Ept, uint64, 4, 9, false>
             EPT_S   = 1UL << 7,
 
             PTE_P   = EPT_R | EPT_W | EPT_X,
-            PTE_S   = EPT_S,
             PTE_N   = EPT_R | EPT_W | EPT_X,
         };
+
+        ALWAYS_INLINE
+        inline bool super(unsigned long) const { return val & EPT_S; }
+
+        ALWAYS_INLINE
+        static inline uint64 pte_s(unsigned long const l) { return l ? EPT_S : 0; }
 
         ALWAYS_INLINE
         static inline mword hw_attr (mword a, mword t) { return a ? t << 3 | a | EPT_I | EPT_R : 0; }

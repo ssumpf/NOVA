@@ -28,8 +28,8 @@ mword Dpt::ord = ~0UL;
 mword Ept::ord = ~0UL;
 mword Hpt::ord = ~0UL;
 
-template <typename P, typename E, unsigned L, unsigned B, bool F>
-P *Pte<P,E,L,B,F>::walk (Quota &quota, E v, unsigned long n, bool a)
+template <typename P, typename E, unsigned L, unsigned B, bool F, bool V>
+P *Pte<P,E,L,B,F,V>::walk (Quota &quota, E v, unsigned long n, bool a)
 {
     unsigned long l = L;
 
@@ -43,14 +43,14 @@ P *Pte<P,E,L,B,F>::walk (Quota &quota, E v, unsigned long n, bool a)
             if (!a)
                 return nullptr;
 
-            if (!e->set (0, Buddy::ptr_to_phys (p = new (quota) P) | (l == L ? 0 : P::PTE_N)))
+            if (!e->set (0, Buddy::ptr_to_phys (p = new (quota) P) | (l == L ? 0 : E(P::PTE_N)) | (V ? E(l) << 9 : 0)))
                 Pte::destroy(p, quota);
         }
     }
 }
 
-template <typename P, typename E, unsigned L, unsigned B, bool F>
-size_t Pte<P,E,L,B,F>::lookup (E v, Paddr &p, mword &a)
+template <typename P, typename E, unsigned L, unsigned B, bool F, bool V>
+size_t Pte<P,E,L,B,F,V>::lookup (E v, Paddr &p, mword &a)
 {
     unsigned long l = L;
 
@@ -59,7 +59,7 @@ size_t Pte<P,E,L,B,F>::lookup (E v, Paddr &p, mword &a)
         if (EXPECT_FALSE (!e->val))
             return 0;
 
-        if (EXPECT_FALSE (l && !e->super()))
+        if (EXPECT_FALSE (l && !e->super(l)))
             continue;
 
         size_t s = 1UL << (l * B + e->order());
@@ -72,8 +72,8 @@ size_t Pte<P,E,L,B,F>::lookup (E v, Paddr &p, mword &a)
     }
 }
 
-template <typename P, typename E, unsigned L, unsigned B, bool F>
-bool Pte<P,E,L,B,F>::update (Quota &quota, E v, mword o, E p, mword a, Type t)
+template <typename P, typename E, unsigned L, unsigned B, bool F, bool V>
+bool Pte<P,E,L,B,F,V>::update (Quota &quota, E v, mword o, E p, mword a, Type t)
 {
     unsigned long l = o / B, n = 1UL << o % B, s;
 
@@ -83,7 +83,7 @@ bool Pte<P,E,L,B,F>::update (Quota &quota, E v, mword o, E p, mword a, Type t)
         return false;
 
     if (a) {
-        p |= P::order (o % B) | (l ? P::PTE_S : 0) | a;
+        p |= P::order (o % B) | P::pte_s(l) | a;
         s = 1UL << (l * B + PAGE_BITS);
     } else
         p = s = 0;
@@ -101,7 +101,7 @@ bool Pte<P,E,L,B,F>::update (Quota &quota, E v, mword o, E p, mword a, Type t)
         if (t == TYPE_DF)
             continue;
 
-        if (l && !e[i].super()) {
+        if (l && !e[i].super(l)) {
             Pte::destroy(static_cast<P *>(Buddy::phys_to_ptr (e[i].addr())), quota);
             flush_tlb = true;
         }
@@ -113,8 +113,8 @@ bool Pte<P,E,L,B,F>::update (Quota &quota, E v, mword o, E p, mword a, Type t)
     return flush_tlb;
 }
 
-template <typename P, typename E, unsigned L, unsigned B, bool F>
-void Pte<P,E,L,B,F>::clear (Quota &quota, bool (*d) (Paddr, mword, unsigned), bool (*il) (unsigned, mword))
+template <typename P, typename E, unsigned L, unsigned B, bool F, bool V>
+void Pte<P,E,L,B,F,V>::clear (Quota &quota, bool (*d) (Paddr, mword, unsigned), bool (*il) (unsigned, mword))
 {
     if (!val)
         return;
@@ -126,14 +126,14 @@ void Pte<P,E,L,B,F>::clear (Quota &quota, bool (*d) (Paddr, mword, unsigned), bo
     Pte::destroy (e, quota);
 }
 
-template <typename P, typename E, unsigned L, unsigned B, bool F>
-void Pte<P,E,L,B,F>::free_up (Quota &quota, unsigned l, P * e, mword v, bool (*d)(Paddr, mword, unsigned), bool (*il) (unsigned, mword))
+template <typename P, typename E, unsigned L, unsigned B, bool F, bool V>
+void Pte<P,E,L,B,F,V>::free_up (Quota &quota, unsigned l, P * e, mword v, bool (*d)(Paddr, mword, unsigned), bool (*il) (unsigned, mword))
 {
     if (!e)
         return;
 
     for (unsigned long i = 0; i < (1 << B); i++) {
-        if (!e[i].val || e[i].super())
+        if (!e[i].val || e[i].super(l))
             continue;
 
         P *p = static_cast<P *>(Buddy::phys_to_ptr (e[i].addr()));
@@ -147,6 +147,6 @@ void Pte<P,E,L,B,F>::free_up (Quota &quota, unsigned l, P * e, mword v, bool (*d
     }
 }
 
-template class Pte<Dpt, uint64, 4, 9, true>;
-template class Pte<Ept, uint64, 4, 9, false>;
-template class Pte<Hpt, mword, PTE_LEV, PTE_BPL, false>;
+template class Pte<Dpt, uint64, 4, 9, true, false>;
+template class Pte<Ept, uint64, 4, 9, false, false>;
+template class Pte<Hpt, mword, PTE_LEV, PTE_BPL, false, false>;
