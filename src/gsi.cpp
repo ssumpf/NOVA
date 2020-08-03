@@ -23,6 +23,7 @@
 #include "iommu_intel.hpp"
 #include "gsi.hpp"
 #include "ioapic.hpp"
+#include "iommu_amd.hpp"
 #include "keyb.hpp"
 #include "lapic.hpp"
 #include "sm.hpp"

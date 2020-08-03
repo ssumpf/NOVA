@@ -16,6 +16,7 @@
  */
 
 #include "iommu.hpp"
+#include "iommu_amd.hpp"
 #include "iommu_intel.hpp"
 #include "lapic.hpp"
 #include "vectors.hpp"
@@ -27,6 +28,8 @@ void Iommu::Interface::vector (unsigned vector)
     if (EXPECT_TRUE (msi == 0)) {
         if (Dmar::online())
             Dmar::vector(vector);
+        if (Iommu::Amd::online())
+            Iommu::Amd::vector(vector);
     }
 
     Lapic::eoi();
@@ -38,14 +41,22 @@ void Iommu::Interface::set_irt (unsigned const gsi, unsigned const rid,
 {
     if (Dmar::online())
         Dmar::set_irt (gsi, rid, aid, vec, trg);
+
+    if (Iommu::Amd::online())
+        Iommu::Amd::set_irt (gsi, rid, aid, vec, trg);
 }
 
 void Iommu::Interface::release (uint16 const rid, Pd * const pd)
 {
     if (Dmar::online())
         Dmar::release(rid, pd);
+
+    if (Iommu::Amd::online())
+        Iommu::Amd::release(rid, pd);
 }
 
-void Iommu::Interface::flush_pgt(uint16 const, Pd &)
+void Iommu::Interface::flush_pgt(uint16 const rid, Pd &pd)
 {
+    if (Iommu::Amd::online())
+        Iommu::Amd::flush_pgt(rid, pd);
 }

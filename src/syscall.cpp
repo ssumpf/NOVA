@@ -976,6 +976,9 @@ void Ec::sys_assign_pci()
 
     Pd * pd = static_cast<Pd *>(obj);
 
+    if (pd->dom_id == Space_mem::NO_DOMAIN_ID)
+        sys_finish<Sys_regs::BAD_DEV>();
+
     if (pd->quota.hit_limit(4)) {
         trace(TRACE_OOM, "%s:%u - not enough resources %lu/%lu", __func__, __LINE__, pd->quota.usage(), pd->quota.limit());
         sys_finish<Sys_regs::QUO_OOM>();

@@ -22,6 +22,7 @@
 
 #include "list.hpp"
 #include "lock_guard.hpp"
+#include "iommu.hpp"
 #include "slab.hpp"
 
 class Ioapic : public List<Ioapic>
@@ -30,6 +31,7 @@ class Ioapic : public List<Ioapic>
         mword    const      reg_base;
         unsigned const      gsi_base;
         unsigned const      id;
+        Iommu::Interface   *iommu { nullptr };
         uint16              rid;
         Spinlock            lock { };
 
@@ -83,16 +85,24 @@ class Ioapic : public List<Ioapic>
         static inline void *operator new (size_t, Quota &quota) { return cache.alloc(quota); }
 
         ALWAYS_INLINE
-        static inline bool claim_dev (unsigned r, unsigned i)
+        static inline bool claim_dev (unsigned r, unsigned i, Iommu::Interface *iommu)
         {
             for (Ioapic *ioapic = list; ioapic; ioapic = ioapic->next)
                 if (ioapic->rid == 0 && ioapic->id == i) {
-                    ioapic->rid  = static_cast<uint16>(r);
+                    ioapic->rid   = static_cast<uint16>(r);
+                    ioapic->iommu = iommu;
                     return true;
                 }
 
             return false;
         }
+
+        template <typename T>
+        static void for_each (T const fn) {
+            for (Ioapic *ioapic = list; ioapic; ioapic = ioapic->next) {
+                fn(ioapic);
+            }
+        };
 
         ALWAYS_INLINE
         inline uint16 get_rid() const { return rid; }
@@ -122,4 +132,7 @@ class Ioapic : public List<Ioapic>
             unsigned pin = gsi - gsi_base;
             write (Register (IOAPIC_IRT + 2 * pin + 1), ire ? (gsi << 17 | 1ul << 16) : (cpu << 24));
         }
+
+        ALWAYS_INLINE
+        Iommu::Interface * io_mmu() const { return iommu; };
 };

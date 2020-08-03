@@ -30,6 +30,7 @@
 #include "vectors.hpp"
 
 Bit_alloc<4096, Space_mem::NO_PCID> Space_mem::did_alloc;
+Bit_alloc<1<<16, Space_mem::NO_DOMAIN_ID> Space_mem::dom_alloc;
 
 void Space_mem::init (Quota &quota, unsigned cpu)
 {
@@ -51,6 +52,8 @@ bool Space_mem::update (Quota_guard &quota, Mdb *mdb, mword r)
     mword a = mdb->node_attr & ~r;
     mword s = mdb->node_sub;
 
+    bool f = false;
+
     if (s & 1 && Dpt::active()) {
         mword ord = min (o, Dpt::ord);
         for (unsigned long i = 0; i < 1UL << (o - ord); i++) {
@@ -59,7 +62,7 @@ bool Space_mem::update (Quota_guard &quota, Mdb *mdb, mword r)
                 return false;
             }
 
-            dpt.update (quota, b + i * (1UL << (ord + PAGE_BITS)), ord, p + i * (1UL << (ord + PAGE_BITS)), a, r ? Dpt::TYPE_DN : Dpt::TYPE_UP);
+            f |= dpt.update (quota, b + i * (1UL << (ord + PAGE_BITS)), ord, p + i * (1UL << (ord + PAGE_BITS)), a, r ? Dpt::TYPE_DN : Dpt::TYPE_UP);
         }
     }
 
@@ -71,7 +74,7 @@ bool Space_mem::update (Quota_guard &quota, Mdb *mdb, mword r)
                 return false;
             }
 
-            ipt.update (quota, b + i * (1UL << (ord + PAGE_BITS)), ord, p + i * (1UL << (ord + PAGE_BITS)), Ipt::hw_attr(a), r ? Ipt::TYPE_DN : Ipt::TYPE_UP);
+            f |= ipt.update (quota, b + i * (1UL << (ord + PAGE_BITS)), ord, p + i * (1UL << (ord + PAGE_BITS)), Ipt::hw_attr(a), r ? Ipt::TYPE_DN : Ipt::TYPE_UP);
         }
     }
 
@@ -113,7 +116,6 @@ bool Space_mem::update (Quota_guard &quota, Mdb *mdb, mword r)
         return false;
 
     mword ord = min (o, Hpt::ord);
-    bool f = false;
 
     for (unsigned long i = 0; i < 1UL << (o - ord); i++) {
         if (!r && !hpt.check(quota, ord)) {

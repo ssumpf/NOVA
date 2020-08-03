@@ -101,7 +101,7 @@ class Pci : public List<Pci>
         }
 
         ALWAYS_INLINE
-        static inline bool claim_dev (Iommu::Interface *d, unsigned r)
+        static inline bool claim_dev (Iommu::Interface *d, unsigned r, bool single = false)
         {
             Pci *pci = find_dev (r);
 
@@ -109,10 +109,14 @@ class Pci : public List<Pci>
                 return false;
 
             unsigned l = pci->lev;
-            do pci->iommu = d; while ((pci = pci->next) && pci->lev > l);
+            do pci->iommu = d; while (!single && (pci = pci->next) && pci->lev > l);
 
             return true;
         }
+
+        ALWAYS_INLINE
+        static inline bool claim_dev_single (Iommu::Interface *d, unsigned r) {
+            return claim_dev(d, r, true); }
 
         INIT
         static void init (unsigned = 0, unsigned = 0);

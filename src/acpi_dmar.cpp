@@ -47,7 +47,7 @@ void Acpi_dmar::parse() const
                 Pci::claim_dev (dmar, s->rid());
                 break;
             case 3:
-                Ioapic::claim_dev (s->rid(), s->id);
+                Ioapic::claim_dev (s->rid(), s->id, dmar);
                 break;
             case 4:
                 Hpet::claim_dev (s->rid(), s->id);

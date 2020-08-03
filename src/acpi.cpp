@@ -22,6 +22,7 @@
 #include "acpi_dmar.hpp"
 #include "acpi_fadt.hpp"
 #include "acpi_hpet.hpp"
+#include "acpi_ivrs.hpp"
 #include "acpi_madt.hpp"
 #include "acpi_mcfg.hpp"
 #include "acpi_rsdp.hpp"
@@ -35,7 +36,7 @@
 #include "x86.hpp"
 #include "pd.hpp"
 
-Paddr       Acpi::dmar, Acpi::fadt, Acpi::hpet, Acpi::madt, Acpi::mcfg, Acpi::rsdt, Acpi::xsdt;
+Paddr       Acpi::dmar, Acpi::fadt, Acpi::hpet, Acpi::madt, Acpi::mcfg, Acpi::rsdt, Acpi::xsdt, Acpi::ivrs;
 Acpi_gas    Acpi::pm1a_sts, Acpi::pm1b_sts, Acpi::pm1a_ena, Acpi::pm1b_ena, Acpi::pm1a_cnt, Acpi::pm1b_cnt, Acpi::pm2_cnt, Acpi::pm_tmr, Acpi::reset_reg;
 Acpi_gas    Acpi::gpe0_sts, Acpi::gpe1_sts, Acpi::gpe0_ena, Acpi::gpe1_ena;
 uint32      Acpi::tmr_ovf, Acpi::feature;
@@ -84,6 +85,8 @@ void Acpi::setup()
         static_cast<Acpi_table_mcfg *>(Hpt::remap (Pd::kern.quota, mcfg))->parse();
     if (dmar)
         static_cast<Acpi_table_dmar *>(Hpt::remap (Pd::kern.quota, dmar))->parse();
+    if (ivrs)
+        static_cast<Acpi_table_ivrs *>(Hpt::remap (Pd::kern.quota, ivrs))->parse();
 
     if (!Acpi_table_madt::sci_overridden) {
         Acpi_intr sci_override;
