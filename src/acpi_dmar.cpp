@@ -21,11 +21,12 @@
 
 #include "acpi_dmar.hpp"
 #include "cmdline.hpp"
-#include "dmar.hpp"
+#include "iommu_intel.hpp"
 #include "dpt.hpp"
 #include "hip.hpp"
 #include "hpet.hpp"
 #include "ioapic.hpp"
+#include "iommu.hpp"
 #include "pci.hpp"
 #include "pd.hpp"
 
@@ -62,16 +63,16 @@ void Acpi_rmrr::parse() const
 
     for (Acpi_scope const *s = scope; s < reinterpret_cast<Acpi_scope *>(reinterpret_cast<mword>(this) + length); s = reinterpret_cast<Acpi_scope *>(reinterpret_cast<mword>(s) + s->length)) {
 
-        Dmar *dmar = nullptr;
+        Iommu::Interface *iommu = nullptr;
 
         switch (s->type) {
             case 1:
-                dmar = Pci::find_dmar (s->rid());
+                iommu = Pci::find_iommu (s->rid());
                 break;
         }
 
-        if (dmar)
-            dmar->assign (s->rid(), &Pd::kern);
+        if (iommu)
+            iommu->assign (s->rid(), &Pd::kern);
     }
 }
 

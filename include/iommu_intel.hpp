@@ -23,6 +23,7 @@
 #include "list.hpp"
 #include "slab.hpp"
 #include "x86.hpp"
+#include "iommu.hpp"
 
 class Pd;
 
@@ -88,7 +89,7 @@ class Dmar_irt
         static inline void *operator new (size_t, Quota &quota) { return flush (Buddy::allocator.alloc (0, quota, Buddy::FILL_0), PAGE_SIZE); }
 };
 
-class Dmar : public List<Dmar>
+class Dmar : public Iommu::Interface, public List<Dmar>
 {
     private:
         mword const         reg_base;
@@ -97,12 +98,6 @@ class Dmar : public List<Dmar>
         Dmar_qi *           invq;
         unsigned            invq_idx;
         Spinlock            lock { };
-
-        struct {
-            uint16          rid;
-            uint8           count;
-            uint8           changed;
-        } fault_info[4];
 
         static Dmar_ctx *   ctx;
         static Dmar_irt *   irt;
@@ -272,9 +267,11 @@ class Dmar : public List<Dmar>
             return cap == 0 || ecap == 0 || cap == ~0ULL || ecap == ~0ULL;
         }
 
-        void assign (uint16, Pd *);
+        void assign (uint16, Pd *) override;
         static void release (uint16, Pd *);
 
-        REGPARM (1)
-        static void vector (unsigned) asm ("msi_vector");
+        static void vector (unsigned);
+
+        ALWAYS_INLINE
+        static bool online () { return list; }
 };

@@ -18,7 +18,7 @@
  * GNU General Public License version 2 for more details.
  */
 
-#include "dmar.hpp"
+#include "iommu_intel.hpp"
 #include "ec.hpp"
 #include "gsi.hpp"
 #include "lapic.hpp"

@@ -20,7 +20,7 @@
  * GNU General Public License version 2 for more details.
  */
 
-#include "dmar.hpp"
+#include "iommu_intel.hpp"
 #include "gsi.hpp"
 #include "hip.hpp"
 #include "hpet.hpp"
@@ -987,13 +987,13 @@ void Ec::sys_assign_pci()
         sys_finish<Sys_regs::BAD_DEV>();
     }
 
-    Dmar *dmar = Pci::find_dmar (r->hnt());
-    if (EXPECT_FALSE (!dmar)) {
+    auto * const iommu = Pci::find_iommu (r->hnt());
+    if (EXPECT_FALSE (!iommu)) {
         trace (TRACE_ERROR, "%s: Invalid Hint (%#lx)", __func__, r->hnt());
         sys_finish<Sys_regs::BAD_DEV>();
     }
 
-    dmar->assign (static_cast<uint16>(rid), static_cast<Pd *>(obj));
+    iommu->assign (static_cast<uint16>(rid), static_cast<Pd *>(obj));
 
     sys_finish<Sys_regs::SUCCESS>();
 }

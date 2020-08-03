@@ -20,7 +20,7 @@
 
 #include "pci.hpp"
 #include "pd.hpp"
-#include "stdio.hpp"
+#include "iommu.hpp"
 
 INIT_PRIORITY (PRIO_SLAB)
 Slab_cache Pci::cache (sizeof (Pci), 8);
@@ -34,7 +34,7 @@ struct Pci::quirk_map Pci::map[] INITDATA =
 {
 };
 
-Pci::Pci (unsigned r, unsigned l) : List<Pci> (list), reg_base (hwdev_addr -= PAGE_SIZE), rid (static_cast<uint16>(r)), lev (static_cast<uint16>(l)), dmar (nullptr)
+Pci::Pci (unsigned r, unsigned l) : List<Pci> (list), reg_base (hwdev_addr -= PAGE_SIZE), rid (static_cast<uint16>(r)), lev (static_cast<uint16>(l)), iommu(nullptr)
 {
     Pd::kern.Space_mem::insert (Pd::kern.quota, reg_base, 0, Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_UC | Hpt::HPT_W | Hpt::HPT_P, cfg_base + (rid << PAGE_BITS));
 
@@ -60,4 +60,11 @@ void Pci::init (unsigned b, unsigned l)
         if (!(r & 0x7) && !(h & 0x80))
             r += 7;
     }
+}
+
+Iommu::Interface *Pci::find_iommu (unsigned long r)
+{
+    Pci *pci = find_dev (r);
+
+    return pci ? pci->iommu : nullptr;
 }

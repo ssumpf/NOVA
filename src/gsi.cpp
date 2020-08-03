@@ -20,7 +20,7 @@
  */
 
 #include "acpi.hpp"
-#include "dmar.hpp"
+#include "iommu_intel.hpp"
 #include "gsi.hpp"
 #include "ioapic.hpp"
 #include "keyb.hpp"
@@ -65,7 +65,7 @@ uint64 Gsi::set (unsigned gsi, unsigned cpu, unsigned rid)
         msi_data = Dmar::ire() ? gsi : gsi_table[gsi].vec;
     }
 
-    Dmar::set_irt (gsi, rid, aid, VEC_GSI + gsi, gsi_table[gsi].trg);
+    Iommu::Interface::set_irt (gsi, rid, aid, VEC_GSI + gsi, gsi_table[gsi].trg);
 
     return static_cast<uint64>(msi_addr) << 32 | msi_data;
 }

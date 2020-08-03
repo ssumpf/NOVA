@@ -24,7 +24,9 @@
 #include "list.hpp"
 #include "slab.hpp"
 
-class Dmar;
+namespace Iommu {
+    class Interface;
+};
 
 class Pci : public List<Pci>
 {
@@ -34,7 +36,7 @@ class Pci : public List<Pci>
         mword  const        reg_base;
         uint16 const        rid;
         uint16 const        lev;
-        Dmar *              dmar;
+        Iommu::Interface *  iommu;
 
         static unsigned     bus_base;
         static Paddr        cfg_base;
@@ -84,15 +86,15 @@ class Pci : public List<Pci>
         static inline void *operator new (size_t, Quota &quota) { return cache.alloc(quota); }
 
         ALWAYS_INLINE
-        static inline void claim_all (Dmar *d)
+        static inline void claim_all (Iommu::Interface *d)
         {
             for (Pci *pci = list; pci; pci = pci->next)
-                if (!pci->dmar)
-                    pci->dmar = d;
+                if (!pci->iommu)
+                    pci->iommu = d;
         }
 
         ALWAYS_INLINE
-        static inline bool claim_dev (Dmar *d, unsigned r)
+        static inline bool claim_dev (Iommu::Interface *d, unsigned r)
         {
             Pci *pci = find_dev (r);
 
@@ -100,7 +102,7 @@ class Pci : public List<Pci>
                 return false;
 
             unsigned l = pci->lev;
-            do pci->dmar = d; while ((pci = pci->next) && pci->lev > l);
+            do pci->iommu = d; while ((pci = pci->next) && pci->lev > l);
 
             return true;
         }
@@ -114,11 +116,5 @@ class Pci : public List<Pci>
             return p - cfg_base < cfg_size ? static_cast<unsigned>((bus_base << 8) + (p - cfg_base) / PAGE_SIZE) : ~0U;
         }
 
-        ALWAYS_INLINE
-        static inline Dmar *find_dmar (unsigned long r)
-        {
-            Pci *pci = find_dev (r);
-
-            return pci ? pci->dmar : nullptr;
-        }
+        static Iommu::Interface *find_iommu (unsigned long);
 };

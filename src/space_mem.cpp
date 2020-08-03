@@ -51,7 +51,7 @@ bool Space_mem::update (Quota_guard &quota, Mdb *mdb, mword r)
     mword a = mdb->node_attr & ~r;
     mword s = mdb->node_sub;
 
-    if (s & 1 && Dpt::ord != ~0UL) {
+    if (s & 1 && Dpt::active()) {
         mword ord = min (o, Dpt::ord);
         for (unsigned long i = 0; i < 1UL << (o - ord); i++) {
             if (!r && !dpt.check(quota, ord)) {

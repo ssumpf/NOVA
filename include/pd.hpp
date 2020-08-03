@@ -22,7 +22,7 @@
 #pragma once
 
 #include "crd.hpp"
-#include "dmar.hpp"
+#include "iommu_intel.hpp"
 #include "space_mem.hpp"
 #include "space_obj.hpp"
 #include "space_pio.hpp"
@@ -51,28 +51,9 @@ class Pd : public Kobject, public Refcount, public Space_mem, public Space_pio, 
             crd = Crd(Crd::OBJ);
             pd->revoke<Space_obj>(crd.base(), crd.order(), crd.attr(), true, false);
 
-            for (unsigned i = 0; i < sizeof(rids)/sizeof(rids[0]); i++) {
-                bool free_up = false;
-                uint16 rid   = 0;
-
-                {
-                    /* avoid cross taking of spinlock in dmar and here */
-                    Lock_guard <Spinlock> guard (pd->Kobject::lock);
-
-                    if (pd->rids_u & (1U << i)) {
-                        free_up = true;
-                        rid     = pd->rids[i];
-
-                        pd->rids_u ^= static_cast<uint16>(1U << i);
-
-                        /* this is called by Rcu::call or ~Pd - no result evaluation */
-                        pd->del_rcu();
-                    }
-                }
-
-                if (free_up)
-                    Dmar::release(rid, pd);
-            }
+            pd->release_rid([&](uint16 const rid) {
+                Iommu::Interface::release(rid, pd);
+            });
         }
 
         static void free (Rcu_elem * a) {
@@ -167,6 +148,42 @@ class Pd : public Kobject, public Refcount, public Space_mem, public Space_pio, 
         void rev_crd (Crd, bool, bool, bool);
 
         void assign_rid(uint16 r);
+
+        template<typename FUNC>
+        void release_rid(FUNC const &fn)
+        {
+            for (unsigned i = 0; i < sizeof(rids) / sizeof(rids[0]); i++) {
+                bool free_up = false;
+                uint16 rid   = 0;
+
+                {
+                    /* avoid cross taking of spinlock in iommu and here */
+                    Lock_guard <Spinlock> guard (Kobject::lock);
+
+                    if (rids_u & (1U << i)) {
+                        free_up = true;
+                        rid     = rids[i];
+
+                        rids_u ^= static_cast<uint16>(1U << i);
+                        /* this is called by Rcu::call or ~Pd - no result evaluation */
+                        del_rcu();
+                    }
+                }
+
+                if (free_up)
+                    fn(rid);
+            }
+        }
+
+
+        void flush_pgt()
+        {
+            for (unsigned i = 0; i < sizeof(rids) / sizeof(rids[0]); i++) {
+                if (rids_u & (1U << i))
+                    Iommu::Interface::flush_pgt(rids[i], *this);
+            }
+        }
+
 
         ALWAYS_INLINE
         static inline void *operator new (size_t, Quota &quota) { return cache.alloc(quota); }
