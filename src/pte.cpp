@@ -22,11 +22,13 @@
 #include "dpt.hpp"
 #include "ept.hpp"
 #include "hpt.hpp"
+#include "ipt.hpp"
 #include "pte.hpp"
 
 mword Dpt::ord = ~0UL;
 mword Ept::ord = ~0UL;
 mword Hpt::ord = ~0UL;
+mword Ipt::ord = ~0UL;
 
 template <typename P, typename E, unsigned L, unsigned B, bool F, bool V>
 P *Pte<P,E,L,B,F,V>::walk (Quota &quota, E v, unsigned long n, bool a)
@@ -73,7 +75,7 @@ size_t Pte<P,E,L,B,F,V>::lookup (E v, Paddr &p, mword &a)
 }
 
 template <typename P, typename E, unsigned L, unsigned B, bool F, bool V>
-bool Pte<P,E,L,B,F,V>::update (Quota &quota, E v, mword o, E p, mword a, Type t)
+bool Pte<P,E,L,B,F,V>::update (Quota &quota, E v, mword o, E p, E a, Type t)
 {
     unsigned long l = o / B, n = 1UL << o % B, s;
 
@@ -148,5 +150,6 @@ void Pte<P,E,L,B,F,V>::free_up (Quota &quota, unsigned l, P * e, mword v, bool (
 }
 
 template class Pte<Dpt, uint64, 4, 9, true, false>;
+template class Pte<Ipt, uint64, 4, 9, true, true>;
 template class Pte<Ept, uint64, 4, 9, false, false>;
 template class Pte<Hpt, mword, PTE_LEV, PTE_BPL, false, false>;

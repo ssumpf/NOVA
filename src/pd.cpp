@@ -449,8 +449,15 @@ Pd::~Pd()
     pre_free(this);
 
     Space_mem::hpt.clear(quota, Space_mem::hpt.dest_hpt, Space_mem::hpt.iter_hpt_lev);
-    Space_mem::dpt.clear(quota);
+
+    if (Dpt::active())
+        Space_mem::dpt.clear(quota);
+    else
+    if (Ipt::active())
+        Space_mem::ipt.clear(quota);
+
     Space_mem::npt.clear(quota);
+
     for (unsigned cpu = 0; cpu < NUM_CPU; cpu++)
         if (Hip::cpu_online (cpu))
             Space_mem::loc[cpu].clear(quota, Space_mem::hpt.dest_loc, Space_mem::hpt.iter_loc_lev);

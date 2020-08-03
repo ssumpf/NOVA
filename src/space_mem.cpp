@@ -63,6 +63,18 @@ bool Space_mem::update (Quota_guard &quota, Mdb *mdb, mword r)
         }
     }
 
+    if (s & 1 && Ipt::active()) {
+        mword ord = min (o, Ipt::ord);
+        for (unsigned long i = 0; i < 1UL << (o - ord); i++) {
+            if (!r && !ipt.check(quota, ord)) {
+                Cpu::hazard |= HZD_OOM;
+                return false;
+            }
+
+            ipt.update (quota, b + i * (1UL << (ord + PAGE_BITS)), ord, p + i * (1UL << (ord + PAGE_BITS)), Ipt::hw_attr(a), r ? Ipt::TYPE_DN : Ipt::TYPE_UP);
+        }
+    }
+
     if (s & 2) {
         if (Vmcb::has_npt()) {
             mword ord = min (o, Hpt::ord);

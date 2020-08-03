@@ -104,7 +104,7 @@ class Pte
 
         size_t lookup (E, Paddr &, mword &);
 
-        bool update (Quota &quota, E, mword, E, mword, Type = TYPE_UP);
+        bool update (Quota &quota, E, mword, E, E, Type = TYPE_UP);
 
         void clear (Quota &quota, bool (*) (Paddr, mword, unsigned) = nullptr, bool (*) (unsigned, mword) = nullptr);
 

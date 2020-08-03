@@ -5,6 +5,7 @@
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * Copyright (C) 2012 Udo Steinberg, Intel Corporation.
+ * Copyright (C) 2020 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -26,6 +27,7 @@
 #include "cpuset.hpp"
 #include "dpt.hpp"
 #include "ept.hpp"
+#include "ipt.hpp"
 #include "hpt.hpp"
 #include "space.hpp"
 
@@ -36,9 +38,12 @@ class Space_mem : public Space
     public:
         Hpt loc[NUM_CPU];
         Hpt hpt { };
-        Dpt dpt { };
         union {
-            Ept ept;
+            Dpt dpt { };
+            Ipt ipt;
+        };
+        union {
+            Ept ept { };
             Hpt npt;
         };
 
