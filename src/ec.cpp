@@ -501,7 +501,8 @@ void Ec::xcpu_return()
     assert (current->utcb);
     assert (Sc::current->ec == current);
 
-    current->rcap->regs =  current->regs;
+    *current->rcap->exc_regs() = current->regs;
+    current->rcap->regs.mtd = current->regs.mtd;
 
     current->xcpu_sm->up (ret_xcpu_reply);
 
