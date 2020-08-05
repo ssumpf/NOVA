@@ -212,7 +212,7 @@ void Ec::reply (void (*c)(), Sm * sm)
 
     bool clr = ec->clr_partner();
 
-    if (Sc::current->ec == ec && Sc::current->last_ref())
+    if (Sc::current->ec == ec && (Sc::current->disable || Sc::current->last_ref()))
         Sc::schedule (true);
 
     if (sm)
