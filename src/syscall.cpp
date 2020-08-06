@@ -334,8 +334,20 @@ void Ec::sys_create_pd()
         sys_finish<Sys_regs::BAD_CAP>();
     }
 
+    if (Cpu::hazard & HZD_OOM) {
+        Cpu::hazard &= ~HZD_OOM;
+        delete pd;
+        sys_finish<Sys_regs::QUO_OOM>();
+    }
+
     Crd crd = r->crd();
     pd->del_crd (Pd::current, Crd (Crd::OBJ), crd);
+
+    if (Cpu::hazard & HZD_OOM) {
+        Cpu::hazard &= ~HZD_OOM;
+        delete pd;
+        sys_finish<Sys_regs::QUO_OOM>();
+    }
 
     sys_finish<Sys_regs::SUCCESS>();
 }
