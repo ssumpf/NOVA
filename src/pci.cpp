@@ -21,6 +21,8 @@
 #include "pci.hpp"
 #include "pd.hpp"
 #include "iommu.hpp"
+#include "vectors.hpp"
+
 
 INIT_PRIORITY (PRIO_SLAB)
 Slab_cache Pci::cache (sizeof (Pci), 8);
@@ -67,4 +69,37 @@ Iommu::Interface *Pci::find_iommu (unsigned long r)
     Pci *pci = find_dev (r);
 
     return pci ? pci->iommu : nullptr;
+}
+
+void Pci::enable_msi(unsigned const rid)
+{
+    Pci *pci = find_dev (rid);
+
+    if (!pci) return;
+
+    uint16 cap = pci->readx(0x34) & 0xff;
+    for (uint16 val = 0; cap; cap = (val >> 8) & 0xff) {
+        val = pci->readx(cap);
+        if ((val & 0xff) != 0x5) continue;
+
+        uint16 msi_val = pci->readx(uint16(cap + 2));
+        bool   const msi64   = msi_val & 0x80;
+
+        pci->writex(cap + 0x4, uint32(0xfee00000) | uint32(Cpu::apic_id[0]) << 12);
+        if (msi64) {
+            pci->writex(cap + 0x8, uint32(0));
+            pci->writex(cap + 0xc, short(VEC_MSI_DMAR));
+        } else
+            pci->writex(cap + 0x8, short(VEC_MSI_DMAR));
+
+        pci->writex(cap + 2, msi_val | 0x1);
+        msi_val = pci->readx(uint16(cap + 2));
+        if (msi_val & 0x1)
+            return;
+        else
+            break;
+    }
+
+    Console::print("Enabling MSI for %x:%x.%x failed",
+                   (rid >> 8) & 0xff, (rid >> 3) & 0x1f, rid & 0x7);
 }

@@ -69,6 +69,13 @@ class Pci : public List<Pci>
         inline void write (Register r, T v) { *reinterpret_cast<T volatile *>(reg_base + r) = v; }
 
         ALWAYS_INLINE
+        inline uint16 readx (uint16 const c) { return *reinterpret_cast<uint16 volatile *>(reg_base + c); }
+
+        template <typename T>
+        ALWAYS_INLINE
+        inline void writex (unsigned const c, T v) { *reinterpret_cast<T volatile *>(reg_base + c) = v; }
+
+        ALWAYS_INLINE
         static inline Pci *find_dev (unsigned long r)
         {
             for (Pci *pci = list; pci; pci = pci->next)
@@ -117,4 +124,6 @@ class Pci : public List<Pci>
         }
 
         static Iommu::Interface *find_iommu (unsigned long);
+
+        static void enable_msi(unsigned);
 };
