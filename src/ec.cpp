@@ -463,12 +463,6 @@ void Ec::root_invoke()
     assert (Pd::kern.did == 0);
     assert (Pd::root.did == 1);
 
-    /* quirk */
-    if (Dpt::ord != ~0UL && Dpt::ord > 0x8) {
-       trace (0, "disabling super pages for DMAR");
-       Dpt::ord = 0x8;
-    }
-
     /* LazyFP vulnerability - a never ending story Intel ? */
     if (Cpu::vendor == Cpu::Vendor::INTEL)
         Cmdline::fpu_eager = true;
