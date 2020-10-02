@@ -86,6 +86,9 @@ class Dmar_irt
         inline void set (uint64 h, uint64 l) { hi = h; lo = l; flush (this); }
 
         ALWAYS_INLINE
+        inline uint64 high() const { return hi; }
+
+        ALWAYS_INLINE
         static inline void *operator new (size_t, Quota &quota) { return flush (Buddy::allocator.alloc (0, quota, Buddy::FILL_0), PAGE_SIZE); }
 };
 

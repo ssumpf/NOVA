@@ -121,6 +121,11 @@ void Dmar::release (uint16 rid, Pd *p)
         if (!c->match(lev | p->did << 8, p->dpt.root (p->quota, lev + 1) | 1))
             continue;
 
+        for (unsigned i = 0; i < PAGE_SIZE / sizeof(irt[0]); i++) {
+            if ((irt[i].high() & 0xffff) == rid)
+                irt[i].set(0, 0);
+        }
+
         c->set (0, 0);
         dmar->flush_ctx();
     }
