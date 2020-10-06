@@ -458,8 +458,7 @@ void Ec::root_invoke()
     bool res = Pd::root.quota.set_limit ((1 * 1024 * 1024) >> 12, 0, Pd::root.quota);
     assert (res);
 
-    /* setup PCID handling */
-    Space_mem::boot_init();
+    /* check PCID handling */
     assert (Pd::kern.did == 0);
     assert (Pd::root.did == 1);
 

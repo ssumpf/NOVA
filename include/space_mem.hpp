@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include "bit_alloc.hpp"
 #include "config.hpp"
 #include "cpu.hpp"
 #include "cpuset.hpp"
@@ -48,60 +49,18 @@ class Space_mem : public Space
         Cpuset htlb;
         Cpuset gtlb;
 
-        static mword did_c [4096 / 8 / sizeof(mword)];
-        static mword did_f;
-
-        enum { LAST_PCID = sizeof(Space_mem::did_c) / sizeof(Space_mem::did_c [0]) - 1 };
-
-        ALWAYS_INLINE
-        static inline void boot_init()
-        {
-            bool res = !Atomic::test_set_bit (did_c[0], NO_PCID);
-            assert (res);
-        }
+        static Bit_alloc<4096, NO_PCID> did_alloc;
 
         ALWAYS_INLINE
         inline Space_mem() : cpus(0), htlb(~0UL), gtlb(~0UL)
         {
-            for (mword i = ACCESS_ONCE(did_f), j = 0; j <= LAST_PCID; i++, j++)
-            {
-                i %= (LAST_PCID + 1);
-
-                if (ACCESS_ONCE(did_c[i]) == ~0UL)
-                    continue;
-
-                long b = bit_scan_forward (~did_c[i]);
-                if (b == -1) b = 0;
-
-                if (Atomic::test_set_bit (did_c[i], b)) {
-                    j--;
-                    i--;
-                    continue;
-                }
-
-                did = i * sizeof(did_c[0]) * 8 + b;
-
-                if (did_c[i] != ~0UL && did_f != i)
-                    did_f = i;
-
-                return;
-            }
+            did = did_alloc.alloc();
         }
 
         ALWAYS_INLINE
         inline ~Space_mem()
         {
-            if (did == NO_PCID)
-               return;
-
-            mword i = did / (sizeof(did_c[0]) * 8);
-            mword b = did % (sizeof(did_c[0]) * 8);
-
-            assert (!((i == 0 && b == 0) || (i == 0 && b == 1)));
-            assert (i <= LAST_PCID);
-
-            bool s = Atomic::test_clr_bit (did_c[i], b);
-            assert(s);
+            did_alloc.release(did);
         }
 
         ALWAYS_INLINE

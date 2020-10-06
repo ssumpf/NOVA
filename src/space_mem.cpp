@@ -29,8 +29,7 @@
 #include "svm.hpp"
 #include "vectors.hpp"
 
-mword Space_mem::did_c [4096 / 8 / sizeof(mword)];
-mword Space_mem::did_f = 0;
+Bit_alloc<4096, Space_mem::NO_PCID> Space_mem::did_alloc;
 
 void Space_mem::init (Quota &quota, unsigned cpu)
 {
