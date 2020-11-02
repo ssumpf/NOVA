@@ -123,10 +123,30 @@ void Cpu::check_features()
 
     cpuid (0x80000000, eax, ebx, ecx, edx);
 
+    unsigned smt = 0;
+
     if (eax & 0x80000000) {
         switch (static_cast<uint8>(eax)) {
+            case 0x1e ... 0xff:
+                if (vendor == AMD && family[Cpu::id] >= 0x17) {
+                    cpuid (0x8000001e, eax, ebx, ecx, edx);
+                    smt = ((ebx >> 8) & 0xff) + 1;
+                }
+                [[fallthrough]];
+
             default:
                 cpuid (0x8000000a, Vmcb::svm_version, ebx, ecx, Vmcb::svm_feature);
+
+                if (vendor == AMD && smt) {
+                    cpuid (0x80000008, eax, ebx, tpp, edx);
+                    if ((tpp >> 12) & 0xf)
+                        tpp = 1 << ((tpp >> 12) & 0xf);
+                    else
+                        tpp = (tpp & 0xff) + 1;
+
+                    cpp = tpp / smt;
+                }
+
                 [[fallthrough]];
             case 0x4 ... 0x9:
                 cpuid (0x80000004, name[8], name[9], name[10], name[11]);
@@ -141,6 +161,9 @@ void Cpu::check_features()
                 cpuid (0x80000001, eax, ebx, features[5], features[4]);
                 [[fallthrough]];
         }
+
+        if (vendor == AMD && smt)
+            defeature (FEAT_CMP_LEGACY);
     }
 
     if (feature (FEAT_CMP_LEGACY))
