@@ -179,7 +179,7 @@ void Cpu::check_features()
 
     // Disable C1E on AMD Rev.F and beyond because it stops LAPIC clock
     if (vendor == AMD)
-        if (family[Cpu::id] > 0xf || (family[Cpu::id] == 0xf && model[Cpu::id] >= 0x40))
+        if (family[Cpu::id] == 0x10 || (family[Cpu::id] == 0xf && model[Cpu::id] >= 0x40))
             Msr::write (Msr::AMD_IPMR, Msr::read<uint32>(Msr::AMD_IPMR) & ~(3ul << 27));
 
     // enable PAT if available
