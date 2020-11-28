@@ -570,6 +570,13 @@ bool Utcb::load_svm (Cpu_regs *regs)
 #ifdef __x86_64__
     if (m & Mtd::EFER)
         efer = vmcb->efer;
+
+    if (m & Mtd::SYSCALL_SWAPGS) {
+        star  = vmcb->star;
+        lstar = vmcb->lstar;
+        fmask = vmcb->sfmask;
+        kernel_gs_base = vmcb->kernel_gs_base;
+    }
 #endif
 
     barrier();
@@ -688,6 +695,13 @@ bool Utcb::save_svm (Cpu_regs *regs)
 #ifdef __x86_64__
     if (mtd & Mtd::EFER)
         regs->write_efer<Vmcb> (efer);
+
+    if (mtd & Mtd::SYSCALL_SWAPGS) {
+        vmcb->star   = star;
+        vmcb->lstar  = lstar;
+        vmcb->sfmask = fmask;
+        vmcb->kernel_gs_base = kernel_gs_base;
+    }
 #endif
 
     return mtd & Mtd::FPU;
