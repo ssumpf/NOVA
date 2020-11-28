@@ -80,7 +80,8 @@ class Utcb_data
                 mword           cr8, efer;
                 uint64          star;
                 uint64          lstar;
-                uint64          fmask;
+                uint64          cstar;
+                uint64          sfmask;
                 uint64          kernel_gs_base;
                 uint32          tpr;
                 uint32          tpr_threshold;
