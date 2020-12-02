@@ -132,8 +132,6 @@ bool Pd::delegate (Pd *snd, mword const snd_base, mword const rcv_base, mword co
 template <typename S>
 void Pd::revoke (mword const base, mword const ord, mword const attr, bool self, bool kim)
 {
-    bool iommu_pgt = false;
-
     Mdb *mdb;
     for (mword addr = base; (mdb = S::tree_lookup (addr, true)); addr = mdb->node_base + (1UL << mdb->node_order)) {
 
@@ -146,7 +144,7 @@ void Pd::revoke (mword const base, mword const ord, mword const attr, bool self,
             Quota_guard qg(this->quota);
             if (mdb->node_attr & 0x1f) {
                 if (mdb->node_sub & 0x1)
-                    iommu_pgt = true;
+                    Cpu::hazard |= HZD_IOMMU;
 
                 static_cast<S *>(mdb->space)->update (qg, mdb, 0x1f);
                 mdb->demote_node (0x1f);
@@ -176,7 +174,7 @@ void Pd::revoke (mword const base, mword const ord, mword const attr, bool self,
 
             if (demote && node->node_attr & attr) {
                 if (mdb->node_sub & 0x1)
-                    iommu_pgt = true;
+                    Cpu::hazard |= HZD_IOMMU;
 
                 Quota_guard qg(this->quota);
                 static_cast<S *>(node->space)->update (qg, node, attr);
@@ -220,8 +218,10 @@ void Pd::revoke (mword const base, mword const ord, mword const attr, bool self,
         assert (node == mdb);
     }
 
-    if (iommu_pgt)
+    if (!Cpu::preemption && (Cpu::hazard & HZD_IOMMU)) {
         this->flush_pgt();
+        Cpu::hazard &= ~unsigned(HZD_IOMMU);
+    }
 }
 
 mword Pd::clamp (mword snd_base, mword &rcv_base, mword snd_ord, mword rcv_ord)
@@ -339,7 +339,7 @@ void Pd::del_crd (Pd *pd, Crd del, Crd &crd, mword sub, mword hot)
         this->htlb.merge (cpus);
 
     if (s && sub & 0x1)
-        pd->flush_pgt();
+        this->flush_pgt();
 
     if (s)
         shootdown(this);
@@ -370,6 +370,11 @@ void Pd::rev_crd (Crd crd, bool self, bool preempt, bool kim)
 
     if (preempt)
         Cpu::preempt_disable();
+
+    if (Cpu::hazard & HZD_IOMMU) {
+        this->flush_pgt();
+        Cpu::hazard &= ~unsigned(HZD_IOMMU);
+    }
 
     if (crd.type() == Crd::MEM)
         shootdown(this);
