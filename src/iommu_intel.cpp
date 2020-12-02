@@ -22,6 +22,7 @@
 #include "bits.hpp"
 #include "iommu_intel.hpp"
 #include "lapic.hpp"
+#include "pci.hpp"
 #include "pd.hpp"
 #include "stdio.hpp"
 #include "vectors.hpp"
@@ -186,4 +187,21 @@ void Dmar::vector (unsigned vector)
     if (EXPECT_TRUE (msi == 0))
         for (Dmar *dmar = list; dmar; dmar = dmar->next)
             if (!dmar->invalid()) dmar->fault_handler();
+}
+
+static Dmar * lookup (uint16 const rid)
+{
+    auto * const obj = Pci::find_iommu (rid);
+    Dmar * iommu = static_cast<Dmar *>(obj);
+    return iommu;
+}
+
+void Dmar::flush_pgt (uint16 const rid, Pd &p)
+{
+    auto iommu = lookup(rid);
+    if (!iommu) return;
+
+    Lock_guard <Spinlock> guard (iommu->lock);
+
+    iommu->flush_ctx(Dmar_qi::Mode::FLUSH_BY_DID, p.dom_id);
 }

@@ -57,6 +57,9 @@ void Iommu::Interface::release (uint16 const rid, Pd * const pd)
 
 void Iommu::Interface::flush_pgt(uint16 const rid, Pd &pd)
 {
+    if (Dmar::online())
+        Dmar::flush_pgt(rid, pd);
+
     if (Iommu::Amd::online())
         Iommu::Amd::flush_pgt(rid, pd);
 }

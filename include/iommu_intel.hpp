@@ -34,24 +34,30 @@ class Dmar_qi
 
     public:
         Dmar_qi (uint64 l = 0, uint64 h = 0) : lo (l), hi (h) {}
+
+        enum Mode
+        {
+            FLUSH_GLOBAL = 0x1,
+            FLUSH_BY_DID = 0x2,
+        };
 };
 
 class Dmar_qi_ctx : public Dmar_qi
 {
     public:
-        Dmar_qi_ctx() : Dmar_qi (0x1 | 1UL << 4) {}
+        Dmar_qi_ctx(Mode mode, uint64 did) : Dmar_qi (0x1ULL | (uint64(mode) << 4) | ((did & 0xffffULL) << 16)) {}
 };
 
 class Dmar_qi_tlb : public Dmar_qi
 {
     public:
-        Dmar_qi_tlb() : Dmar_qi (0x2 | 1UL << 4) {}
+        Dmar_qi_tlb(Mode mode, uint64 did) : Dmar_qi (0x22LL | (uint64(mode) << 4) | ((did & 0xffffULL) << 16)) {}
 };
 
 class Dmar_qi_iec : public Dmar_qi
 {
     public:
-        Dmar_qi_iec() : Dmar_qi (0x4 | 1UL << 4) {}
+        Dmar_qi_iec() : Dmar_qi (0x4ULL | 1UL << 4) {}
 };
 
 class Dmar_ctx
@@ -220,17 +226,17 @@ class Dmar : public Iommu::Interface, public List<Dmar>
         }
 
         ALWAYS_INLINE
-        inline void flush_ctx()
+        inline void flush_ctx(Dmar_qi::Mode const mode = Dmar_qi::Mode::FLUSH_GLOBAL, uint64 const domain_id = 0)
         {
             if (qi()) {
-                qi_submit (Dmar_qi_ctx());
-                qi_submit (Dmar_qi_tlb());
+                qi_submit (Dmar_qi_ctx(mode, domain_id));
+                qi_submit (Dmar_qi_tlb(mode, domain_id));
                 qi_wait();
             } else {
-                write<uint64>(REG_CCMD, 1ULL << 63 | 1ULL << 61);
+                write<uint64>(REG_CCMD, (1ULL << 63) | (uint64(mode) << 61) | (domain_id & 0xffffULL));
                 while (read<uint64>(REG_CCMD) & (1ULL << 63))
                     pause();
-                write<uint64>(REG_IOTLB, 1ULL << 63 | 1ULL << 60);
+                write<uint64>(REG_IOTLB, (1ULL << 63) | (uint64(mode) << 60) | ((domain_id & 0xffffULL) << 32));
                 while (read<uint64>(REG_IOTLB) & (1ULL << 63))
                     pause();
             }
@@ -272,6 +278,8 @@ class Dmar : public Iommu::Interface, public List<Dmar>
 
         void assign (uint16, Pd *) override;
         static void release (uint16, Pd *);
+
+        static void flush_pgt(uint16, Pd &);
 
         static void vector (unsigned);
 
