@@ -47,6 +47,10 @@ Dmar::Dmar (Paddr p) : List<Dmar> (list), reg_base ((hwdev_addr -= PAGE_SIZE) | 
         return;
     }
 
+    mword const domain_cnt = 1u << (4 + 2 * (cap & 0x7));
+    if (domain_cnt < Space_mem::dom_alloc.max())
+        Space_mem::dom_alloc.reserve(domain_cnt, Space_mem::dom_alloc.max() - domain_cnt);
+
     Dpt::ord = min (Dpt::ord, static_cast<mword>(bit_scan_reverse (static_cast<mword>(cap >> 34) & 0xf) + 2) * Dpt::bpl() - 1);
 
     write<uint32>(REG_FEADDR, 0xfee00000 | Cpu::apic_id[0] << 12);
@@ -89,7 +93,7 @@ void Dmar::assign (uint16 rid, Pd *p)
 
     flush_ctx();
 
-    c->set (lev | p->did << 8, p->dpt.root (p->quota, lev + 1) | 1);
+    c->set (lev | p->dom_id << 8, p->dpt.root (p->quota, lev + 1) | 1);
 
     p->assign_rid(rid);
 
@@ -118,7 +122,7 @@ void Dmar::release (uint16 rid, Pd *p)
 
         mword lev = bit_scan_reverse (dmar->read<mword>(REG_CAP) >> 8 & 0x1f);
 
-        if (!c->match(lev | p->did << 8, p->dpt.root (p->quota, lev + 1) | 1))
+        if (!c->match(lev | p->dom_id << 8, p->dpt.root (p->quota, lev + 1) | 1))
             continue;
 
         for (unsigned i = 0; i < PAGE_SIZE / sizeof(irt[0]); i++) {
