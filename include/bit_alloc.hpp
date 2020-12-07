@@ -37,6 +37,9 @@ class Bit_alloc
     public:
 
         ALWAYS_INLINE
+        inline mword max() const { return C; }
+
+        ALWAYS_INLINE
         inline Bit_alloc()
         {
             static_assert(MAX*BITS_CNT == C, "bit allocator");
@@ -75,12 +78,40 @@ class Bit_alloc
         inline void release(mword const id)
         {
             if (id == INV || id >= C)
-               return;
+                return;
 
             mword i = id / BITS_CNT;
             mword b = id % BITS_CNT;
 
             while (ACCESS_ONCE(bits[i]) & (1ul << b))
-                Atomic::test_clr_bit (ACCESS_ONCE(bits[i]), b);
+                 Atomic::test_clr_bit (ACCESS_ONCE(bits[i]), b);
+        }
+
+        void reserve(mword const start, mword const count)
+        {
+            if (start >= C)
+                return;
+
+            mword i = start / BITS_CNT;
+            mword b = start % BITS_CNT;
+
+            mword cnt = count > C ? C : count;
+            if (start + cnt > C)
+                cnt = C - start;
+
+            while (cnt) {
+                mword const c  = (cnt > BITS_CNT) ? mword(BITS_CNT) : cnt;
+                mword const bc = (c > (BITS_CNT - b)) ? mword(BITS_CNT - b) : c;
+                if (bits[i] != ~0UL) {
+                    if (bc >= BITS_CNT) {
+                        bits[i] = ~0UL;
+                    } else {
+                        bits[i] |= ((1ul << bc) - 1) << b;
+                    }
+                }
+                i++;
+                cnt -= bc;
+                b = 0;
+            }
         }
 };
