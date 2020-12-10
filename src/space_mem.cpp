@@ -64,6 +64,9 @@ bool Space_mem::update (Quota_guard &quota, Mdb *mdb, mword r)
 
             f |= dpt.update (quota, b + i * (1UL << (ord + PAGE_BITS)), ord, p + i * (1UL << (ord + PAGE_BITS)), a, r ? Dpt::TYPE_DN : Dpt::TYPE_UP);
         }
+
+        if (Dpt::force_flush)
+            f = true;
     }
 
     if (s & 1 && Ipt::active()) {

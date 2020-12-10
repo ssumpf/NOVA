@@ -26,6 +26,7 @@ class Dpt : public Pte<Dpt, uint64, 4, 9, true, false>
 {
     public:
         static mword ord;
+        static bool  force_flush;
 
         static bool active() { return ord != ~0UL; }
 

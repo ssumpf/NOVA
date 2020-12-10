@@ -30,6 +30,8 @@ mword Ept::ord = ~0UL;
 mword Hpt::ord = ~0UL;
 mword Ipt::ord = ~0UL;
 
+bool  Dpt::force_flush = false;
+
 template <typename P, typename E, unsigned L, unsigned B, bool F, bool V>
 P *Pte<P,E,L,B,F,V>::walk (Quota &quota, E v, unsigned long n, bool a)
 {

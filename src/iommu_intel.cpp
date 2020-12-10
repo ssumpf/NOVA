@@ -53,6 +53,8 @@ Dmar::Dmar (Paddr p) : List<Dmar> (list), reg_base ((hwdev_addr -= PAGE_SIZE) | 
         Space_mem::dom_alloc.reserve(domain_cnt, Space_mem::dom_alloc.max() - domain_cnt);
 
     Dpt::ord = min (Dpt::ord, static_cast<mword>(bit_scan_reverse (static_cast<mword>(cap >> 34) & 0xf) + 2) * Dpt::bpl() - 1);
+    if (cm())
+        Dpt::force_flush = true;
 
     write<uint32>(REG_FEADDR, 0xfee00000 | Cpu::apic_id[0] << 12);
     write<uint32>(REG_FEDATA, VEC_MSI_DMAR);

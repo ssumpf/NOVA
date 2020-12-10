@@ -159,6 +159,9 @@ class Dmar : public Iommu::Interface, public List<Dmar>
         inline mword fro() const { return static_cast<mword>(cap >> 20 & 0x3ff0) + reg_base; }
 
         ALWAYS_INLINE
+        inline bool cm() const { return cap & (1 << 7); }
+
+        ALWAYS_INLINE
         inline mword iro() const { return static_cast<mword>(ecap >> 4 & 0x3ff0) + reg_base; }
 
         ALWAYS_INLINE
