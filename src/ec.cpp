@@ -86,7 +86,7 @@ Ec::Ec (Pd *own, mword sel, Pd *p, void (*f)(), unsigned c, unsigned e, mword u,
 
         regs.dst_portal = NUM_VMI - 2;
         regs.vtlb = new (pd->quota) Vtlb;
-        regs.fpu_on = Cmdline::fpu_eager;
+        regs.fpu_on = !Cmdline::fpu_lazy;
 
         if (Hip::feature() & Hip::FEAT_VMX) {
             mword host_cr3 = pd->loc[c].root(pd->quota) | (Cpu::feature (Cpu::FEAT_PCID) ? pd->did : 0);
@@ -146,7 +146,7 @@ Ec::Ec (Pd *own, Pd *p, void (*f)(), unsigned c, Ec *clone) : Kobject (EC, stati
 
 Ec::Ec (Pd *own, Pd *p, void (*f)(), unsigned c, Ec *clone, Pt *pt) : Kobject (EC, static_cast<Space_obj *>(own), clone->node_base, 0xd, free, pre_free), cont (f), regs (clone->regs), rcap (nullptr), utcb (clone->utcb), pd (p), partner (nullptr), prev (nullptr), next (nullptr), fpu (clone->fpu), cpu (static_cast<uint16>(c)), glb (!!f), evt (clone->evt), timeout (this), user_utcb (clone->user_utcb), xcpu_sm (clone->xcpu_sm), pt_oom(pt)
 {
-    if (EXPECT_FALSE((fpowner == clone) && clone->fpu && !Cmdline::fpu_eager)) {
+    if (EXPECT_FALSE((fpowner == clone) && clone->fpu && Cmdline::fpu_lazy)) {
         Fpu::enable();
         save_fpu();
         Fpu::disable();
@@ -276,7 +276,7 @@ void Ec::handle_hazard (mword hzd, void (*func)())
     }
 
     if (hzd & HZD_FPU) {
-        if (Cmdline::fpu_eager)
+        if (!Cmdline::fpu_lazy)
             die ("FPU HZD detected");
 
         if (current != fpowner)
@@ -464,11 +464,7 @@ void Ec::root_invoke()
     assert (Pd::kern.did == 0);
     assert (Pd::root.did == 1);
 
-    /* LazyFP vulnerability - a never ending story Intel ? */
-    if (Cpu::vendor == Cpu::Vendor::INTEL)
-        Cmdline::fpu_eager = true;
-
-    if (Cmdline::fpu_eager) {
+    if (!Cmdline::fpu_lazy) {
         Ec::current->transfer_fpu(Ec::current);
         Cpu::hazard &= ~HZD_FPU;
     }

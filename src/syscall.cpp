@@ -179,7 +179,7 @@ void Ec::recv_kern()
 
     if (EXPECT_FALSE (fpu)) {
         ec->transfer_fpu (current);
-        if (Cmdline::fpu_eager)
+        if (!Cmdline::fpu_lazy)
            Cpu::hazard &= ~HZD_FPU;
     }
 

@@ -34,7 +34,7 @@ bool Cmdline::nopcid;
 bool Cmdline::novga;
 bool Cmdline::novpid;
 bool Cmdline::logmem;
-bool Cmdline::fpu_eager;
+bool Cmdline::fpu_lazy;
 
 struct Cmdline::param_map Cmdline::map[] INITDATA =
 {
@@ -48,7 +48,7 @@ struct Cmdline::param_map Cmdline::map[] INITDATA =
     { "novga",      &Cmdline::novga     },
     { "novpid",     &Cmdline::novpid    },
     { "logmem",     &Cmdline::logmem    },
-    { "fpu_eager",  &Cmdline::fpu_eager },
+    { "fpu_lazy",   &Cmdline::fpu_lazy  },
 };
 
 char const *Cmdline::get_arg (char const **line, unsigned &len)

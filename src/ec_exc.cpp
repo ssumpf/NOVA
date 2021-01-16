@@ -34,11 +34,11 @@ void Fpu::init()
 
 void Ec::load_fpu()
 {
-    if (!Cmdline::fpu_eager && !utcb)
+    if (Cmdline::fpu_lazy && !utcb)
         regs.fpu_ctrl (true);
 
     if (EXPECT_FALSE (!fpu)) {
-        if (Cmdline::fpu_eager && !utcb)
+        if (!Cmdline::fpu_lazy && !utcb)
             regs.fpu_ctrl (true);
 
         Fpu::init();
@@ -49,7 +49,7 @@ void Ec::load_fpu()
 
 void Ec::save_fpu()
 {
-    if (!Cmdline::fpu_eager && !utcb)
+    if (Cmdline::fpu_lazy && !utcb)
         regs.fpu_ctrl (false);
 
     if (EXPECT_FALSE (!fpu))
@@ -86,7 +86,7 @@ void Ec::transfer_fpu (Ec *ec)
 
 void Ec::handle_exc_nm()
 {
-    if (Cmdline::fpu_eager)
+    if (!Cmdline::fpu_lazy)
         die ("FPU fault");
 
     Fpu::enable();

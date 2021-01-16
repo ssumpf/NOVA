@@ -138,7 +138,7 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
                 assert (!zero);
 
                 fpowner      = nullptr;
-                if (!Cmdline::fpu_eager) {
+                if (Cmdline::fpu_lazy) {
                     assert (!(Cpu::hazard & HZD_FPU));
                     Fpu::disable();
                     assert (!(Cpu::hazard & HZD_FPU));
@@ -262,7 +262,7 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
             if (EXPECT_FALSE (current->del_rcu()))
                 Rcu::call (current);
 
-            if (Cmdline::fpu_eager) {
+            if (!Cmdline::fpu_lazy) {
                 if (!idle_ec()) {
                     if (!current->utcb && !this->utcb)
                         assert(!(Cpu::hazard & HZD_FPU));
