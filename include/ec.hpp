@@ -274,6 +274,8 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
                 Cpu::hazard &= ~HZD_FPU;
             }
 
+            check_hazard_tsc_aux();
+
             current = this;
 
             bool ok = current->add_ref();
@@ -284,6 +286,34 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
             pd->make_current();
 
             asm volatile ("mov %0," EXPAND (PREG(sp);) "jmp *%1" : : "g" (CPU_LOCAL_STCK + PAGE_SIZE), "q" (cont) : "memory"); UNREACHED;
+        }
+
+        ALWAYS_INLINE
+        inline void check_hazard_tsc_aux()
+        {
+            if (!Cpu::feature (Cpu::FEAT_RDTSCP))
+                return;
+
+            bool const current_is_vm = (current->regs.vmcb || current->regs.vmcs);
+            bool const next_is_vm    = (this->regs.vmcb    || this->regs.vmcs);
+
+            if (!current_is_vm && !next_is_vm)
+                return;
+
+            if (current_is_vm && !next_is_vm) {
+                if (current->regs.tsc_aux != Cpu::id)
+                    this->regs.set_hazard (HZD_TSC_AUX);
+                return;
+            }
+
+            if (!current_is_vm && next_is_vm) {
+                if (Cpu::id != this->regs.tsc_aux)
+                    this->regs.set_hazard (HZD_TSC_AUX);
+                return;
+            }
+
+            if (current->regs.tsc_aux != this->regs.tsc_aux)
+                this->regs.set_hazard (HZD_TSC_AUX);
         }
 
         ALWAYS_INLINE

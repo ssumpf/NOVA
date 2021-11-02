@@ -65,6 +65,7 @@ class Cpu
             FEAT_SMEP           = 103,
             FEAT_SMAP           = 116,
             FEAT_1GB_PAGES      = 154,
+            FEAT_RDTSCP         = 32 * 4 + 27,
             FEAT_CMP_LEGACY     = 161,
             FEAT_SVM            = 162,
         };

@@ -88,7 +88,7 @@ class Utcb_data
 #endif
                 mword           dr7, sysenter_cs, sysenter_rsp, sysenter_rip;
                 Utcb_segment    es, cs, ss, ds, fs, gs, ld, tr, gd, id;
-                uint64          tsc_val, tsc_off;
+                uint64          tsc_val, tsc_off, tsc_aux;
             };
 
             mword mr[(PAGE_SIZE - sizeof (Utcb_head)) / sizeof(mword)];

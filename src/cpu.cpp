@@ -278,5 +278,8 @@ void Cpu::init()
 
     Hip::add_cpu();
 
+    if (Cpu::feature (Cpu::FEAT_RDTSCP))
+        Msr::write<uint64>(Msr::IA32_TSC_AUX, Cpu::id);
+
     boot_lock++;
 }

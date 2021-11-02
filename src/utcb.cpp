@@ -234,6 +234,9 @@ bool Utcb::load_vmx (Cpu_regs *regs)
         tsc_off = regs->tsc_offset;
     }
 
+    if (m & Mtd::TSC_AUX)
+        tsc_aux = regs->tsc_aux;
+
 #ifdef __x86_64__
     if (m & Mtd::EFER)
         efer = Vmcs::read (Vmcs::GUEST_EFER);
@@ -456,6 +459,9 @@ bool Utcb::save_vmx (Cpu_regs *regs)
         Vmcs::write (Vmcs::GUEST_PDPTE3, pdpte[3]);
     }
 
+    if (mtd & Mtd::TSC_AUX)
+        regs->tsc_aux = tsc_aux;
+
     return mtd & Mtd::FPU;
 }
 
@@ -569,6 +575,9 @@ bool Utcb::load_svm (Cpu_regs *regs)
         tsc_val = rdtsc();
         tsc_off = regs->tsc_offset;
     }
+
+    if (m & Mtd::TSC_AUX)
+        tsc_aux = regs->tsc_aux;
 
 #ifdef __x86_64__
     if (m & Mtd::EFER)
@@ -695,6 +704,9 @@ bool Utcb::save_svm (Cpu_regs *regs)
 
     if (mtd & Mtd::TSC)
         regs->add_tsc_offset (tsc_off);
+
+    if (mtd & Mtd::TSC_AUX)
+        regs->tsc_aux = tsc_aux;
 
 #ifdef __x86_64__
     if (mtd & Mtd::EFER)

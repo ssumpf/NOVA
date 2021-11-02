@@ -217,6 +217,7 @@ class Cpu_regs : public Exc_regs
 
     public:
         uint64  tsc_offset;
+        uint64  tsc_aux;
         mword   mtd;
 
         ALWAYS_INLINE
