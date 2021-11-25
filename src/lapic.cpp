@@ -77,41 +77,7 @@ void Lapic::init(bool invariant_tsc)
     write (LAPIC_TMR_DCR, 0xb);
 
     if ((Cpu::bsp = apic_base & 0x100)) {
-        uint64 ratio = 0;
-
-        /* read out tsc freq if supported */
-        if (Cpu::vendor == Cpu::Vendor::INTEL && Cpu::family[Cpu::id] == 6) {
-            unsigned const model = Cpu::model[Cpu::id];
-            if (model == 0x2a || model == 0x2d || /* Sandy Bridge */
-                model >= 0x3a) { /* Ivy Bridge and later */
-                ratio = static_cast<unsigned>(Msr::read<uint64>(Msr::MSR_PLATFORM_INFO) >> 8) & 0xff;
-                freq_tsc = static_cast<unsigned>(ratio * 100000);
-                freq_bus = dl ? 0 : 100000;
-            }
-            if (model == 0x1a || model == 0x1e || model == 0x1f || model == 0x2e || /* Nehalem */
-                model == 0x25 || model == 0x2c || model == 0x2f) { /* Xeon Westmere */
-                ratio = static_cast<unsigned>(Msr::read<uint64>(Msr::MSR_PLATFORM_INFO) >> 8) & 0xff;
-                freq_tsc = static_cast<unsigned>(ratio * 133330);
-                freq_bus = dl ? 0 : 133330;
-            }
-            if (model == 0x17 || model == 0xf) { /* Core 2 */
-                freq_bus = Msr::read<uint64>(Msr::MSR_FSB_FREQ) & 0x7;
-                switch (freq_bus) {
-                    case 0b101: freq_bus = 100000; break;
-                    case 0b001: freq_bus = 133330; break;
-                    case 0b011: freq_bus = 166670; break;
-                    case 0b010: freq_bus = 200000; break;
-                    case 0b000: freq_bus = 266670; break;
-                    case 0b100: freq_bus = 333330; break;
-                    case 0b110: freq_bus = 400000; break;
-                    default:    freq_bus = 0;      break;
-                }
-
-                ratio = (Msr::read<uint64>(Msr::IA32_PLATFORM_ID) >> 8) & 0x1f;
-
-                freq_tsc  = static_cast<unsigned>(freq_bus * ratio);
-            }
-        }
+        bool measured = !read_tsc_freq();
 
         send_ipi (0, 0, DLV_INIT, DSH_EXC_SELF);
 
@@ -128,9 +94,10 @@ void Lapic::init(bool invariant_tsc)
 
             freq_tsc = (t2 - t1) / delay;
             freq_bus = (v1 - v2) / delay;
+            measured = true;
         }
 
-        trace (0, "TSC:%u kHz BUS:%u kHz%s%s", freq_tsc, freq_bus, !ratio ? " (measured)" : "", dl ? " DL" : "");
+        trace (0, "TSC:%u kHz BUS:%u kHz%s%s", freq_tsc, freq_bus, measured ? " (measured)" : "", dl ? " DL" : "");
 
         send_ipi (0, AP_BOOT_PADDR >> PAGE_BITS, DLV_SIPI, DSH_EXC_SELF);
         Acpi::delay (1);
@@ -140,6 +107,80 @@ void Lapic::init(bool invariant_tsc)
     write (LAPIC_TMR_ICR, 0);
 
     trace (TRACE_APIC, "APIC:%#lx ID:%#x VER:%#x LVT:%#x (%s Mode)", apic_base & ~PAGE_MASK, id(), version(), lvt_max(), freq_bus ? "OS" : "DL");
+}
+
+bool Lapic::read_tsc_freq()
+{
+    if (Cpu::vendor != Cpu::Vendor::INTEL)
+        return false;
+
+    unsigned const model  = Cpu::model[Cpu::id];
+    unsigned const family = Cpu::family[Cpu::id];
+
+    bool const dl = Cpu::feature (Cpu::FEAT_TSC_DEADLINE) && !Cmdline::nodl;
+
+    enum { CPU_ID_CLOCK = 0x15 };
+
+    uint32 eax = 0, ebx = 0, ecx = 0, edx = 0;
+    Cpu::cpuid (0, eax, ebx, ecx, edx);
+
+    if (eax >= CPU_ID_CLOCK) {
+        /* Intel manual: 18.7.3 Determining the Processor Base Frequency */
+        Cpu::cpuid (CPU_ID_CLOCK, eax, ebx, ecx, edx);
+
+        if (eax && ebx) {
+            if (ecx) {
+                freq_tsc = static_cast<unsigned>((uint64(ecx) * ebx) / eax / 1000);
+                return true;
+            }
+
+            if (family == 6) {
+                if (model == 0x5c) /* Goldmont */
+                    freq_tsc = static_cast<unsigned>((19200ull * ebx) / eax);
+                if (model == 0x55) /* Xeon */
+                    freq_tsc = static_cast<unsigned>((25000ull * ebx) / eax);
+            }
+
+            if (!freq_tsc && family >= 6)
+                freq_tsc = static_cast<unsigned>((24000ull * ebx) / eax);
+
+            if (freq_tsc)
+                return true;
+        }
+    }
+
+    if (family != 6)
+        return false;
+
+    if (model == 0x2a || model == 0x2d || /* Sandy Bridge */
+        model >= 0x3a) { /* Ivy Bridge and later */
+        uint64 ratio = (Msr::read<uint64>(Msr::MSR_PLATFORM_INFO) >> 8) & 0xff;
+        freq_tsc = static_cast<unsigned>(ratio * 100000);
+        freq_bus = dl ? 0 : 100000;
+    } else if (model == 0x1a || model == 0x1e || model == 0x1f || model == 0x2e || /* Nehalem */
+               model == 0x25 || model == 0x2c || model == 0x2f) { /* Xeon Westmere */
+        uint64 ratio = (Msr::read<uint64>(Msr::MSR_PLATFORM_INFO) >> 8) & 0xff;
+        freq_tsc = static_cast<unsigned>(ratio * 133330);
+        freq_bus = dl ? 0 : 133330;
+    } else if (model == 0x17 || model == 0xf) { /* Core 2 */
+        freq_bus = Msr::read<uint64>(Msr::MSR_FSB_FREQ) & 0x7;
+        switch (freq_bus) {
+            case 0b101: freq_bus = 100000; break;
+            case 0b001: freq_bus = 133330; break;
+            case 0b011: freq_bus = 166670; break;
+            case 0b010: freq_bus = 200000; break;
+            case 0b000: freq_bus = 266670; break;
+            case 0b100: freq_bus = 333330; break;
+            case 0b110: freq_bus = 400000; break;
+            default:    freq_bus = 0;      break;
+        }
+
+        uint64 ratio = (Msr::read<uint64>(Msr::IA32_PLATFORM_ID) >> 8) & 0x1f;
+
+        freq_tsc = static_cast<unsigned>(freq_bus * ratio);
+    }
+
+    return freq_tsc;
 }
 
 void Lapic::send_ipi (unsigned cpu, unsigned vector, Delivery_mode dlv, Shorthand dsh)

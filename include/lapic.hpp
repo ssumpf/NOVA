@@ -102,6 +102,8 @@ class Lapic
         ALWAYS_INLINE
         static inline void therm_handler();
 
+        static bool read_tsc_freq();
+
     public:
         static unsigned freq_tsc;
         static unsigned freq_bus;
