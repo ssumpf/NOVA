@@ -165,7 +165,7 @@ void Ec::handle_svm()
     mword reason = static_cast<mword>(current->regs.vmcb->exitcode);
 
     switch (reason) {
-        case -1UL:              // Invalid state
+        case -1U:               // Invalid state
             reason = VM_EXIT_INVSTATE;
             break;
         case 0x400:             // NPT
