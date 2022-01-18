@@ -175,7 +175,14 @@ void Ec::handle_svm()
             break;
     }
 
-    Counter::vmi[reason]++;
+    /* all unsupported exits are remapped to a specific exit */
+    if (reason >= NUM_VMI) {
+        reason = VM_EXIT_NOSUPP;
+    }
+
+    /* sanity check, the array has solely NUM_VMI elements */
+    if (reason < NUM_VMI)
+        Counter::vmi[reason]++;
 
     switch (reason) {
 

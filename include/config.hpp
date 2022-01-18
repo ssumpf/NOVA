@@ -45,3 +45,4 @@
 #define VM_EXIT_STARTUP  (NUM_VMI - 2)
 #define VM_EXIT_INVSTATE (NUM_VMI - 3)
 #define VM_EXIT_NPT      (NUM_VMI - 4)
+#define VM_EXIT_NOSUPP   (NUM_VMI - 5)
