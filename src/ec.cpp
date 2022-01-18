@@ -84,7 +84,7 @@ Ec::Ec (Pd *own, mword sel, Pd *p, void (*f)(), unsigned c, unsigned e, mword u,
 
         utcb = nullptr;
 
-        regs.dst_portal = NUM_VMI - 2;
+        regs.dst_portal = VM_EXIT_STARTUP;
         regs.vtlb = new (pd->quota) Vtlb;
         regs.fpu_on = !Cmdline::fpu_lazy;
 
@@ -233,12 +233,12 @@ void Ec::handle_hazard (mword hzd, void (*func)())
         current->regs.clr_hazard (HZD_RECALL);
 
         if (func == ret_user_vmresume) {
-            current->regs.dst_portal = NUM_VMI - 1;
+            current->regs.dst_portal = VM_EXIT_RECALL;
             send_msg<ret_user_vmresume>();
         }
 
         if (func == ret_user_vmrun) {
-            current->regs.dst_portal = NUM_VMI - 1;
+            current->regs.dst_portal = VM_EXIT_RECALL;
             send_msg<ret_user_vmrun>();
         }
 

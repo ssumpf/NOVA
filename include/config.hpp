@@ -40,3 +40,8 @@
 #define SPN_LVT         7
 #define SPN_IPI         (SPN_LVT + NUM_LVT)
 #define SPN_GSI         (SPN_IPI + NUM_IPI)
+
+#define VM_EXIT_RECALL   (NUM_VMI - 1)
+#define VM_EXIT_STARTUP  (NUM_VMI - 2)
+#define VM_EXIT_INVSTATE (NUM_VMI - 3)
+#define VM_EXIT_NPT      (NUM_VMI - 4)

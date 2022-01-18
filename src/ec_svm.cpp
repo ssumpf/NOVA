@@ -70,7 +70,7 @@ void Ec::svm_exception (mword reason)
 
                 case Vtlb::GPA_HPA:
                     current->regs.nst_error = 0;
-                    current->regs.dst_portal = NUM_VMI - 4;
+                    current->regs.dst_portal = VM_EXIT_NPT;
                     break;
 
                 case Vtlb::GLA_GPA:
@@ -166,10 +166,10 @@ void Ec::handle_svm()
 
     switch (reason) {
         case -1UL:              // Invalid state
-            reason = NUM_VMI - 3;
+            reason = VM_EXIT_INVSTATE;
             break;
         case 0x400:             // NPT
-            reason = NUM_VMI - 4;
+            reason = VM_EXIT_NPT;
             current->regs.nst_error = static_cast<mword>(current->regs.vmcb->exitinfo1);
             current->regs.nst_fault = static_cast<mword>(current->regs.vmcb->exitinfo2);
             break;

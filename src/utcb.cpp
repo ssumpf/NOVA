@@ -215,7 +215,7 @@ bool Utcb::load_vmx (Cpu_regs *regs)
     }
 
     if (m & Mtd::INJ) {
-        if (regs->dst_portal == 33 || regs->dst_portal == NUM_VMI - 1) {
+        if (regs->dst_portal == 33 || regs->dst_portal == VM_EXIT_RECALL) {
             intr_info  = static_cast<uint32>(Vmcs::read (Vmcs::ENT_INTR_INFO));
             intr_error = static_cast<uint32>(Vmcs::read (Vmcs::ENT_INTR_ERROR));
         } else {
@@ -550,7 +550,7 @@ bool Utcb::load_svm (Cpu_regs *regs)
     }
 
     if (m & Mtd::QUAL) {
-        if (regs->dst_portal == NUM_VMI - 4) {
+        if (regs->dst_portal == VM_EXIT_NPT) {
             qual[0] = regs->nst_error;
             qual[1] = regs->nst_fault;
         } else {
@@ -560,7 +560,7 @@ bool Utcb::load_svm (Cpu_regs *regs)
     }
 
     if (m & Mtd::INJ) {
-        if (regs->dst_portal == NUM_VMI - 3 || regs->dst_portal == NUM_VMI - 1)
+        if (regs->dst_portal == VM_EXIT_INVSTATE || regs->dst_portal == VM_EXIT_RECALL)
             inj = vmcb->inj_control;
         else
             inj = vmcb->exitintinfo;
