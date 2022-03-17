@@ -22,6 +22,7 @@
 
 #include "compiler.hpp"
 #include "types.hpp"
+#include "console.hpp"
 
 #pragma pack(1)
 
@@ -52,6 +53,16 @@ class Acpi_gas
             asid = reg_asid;
             bits = static_cast<uint8>(reg_bytes * 8);
             addr = reg_addr;
+
+            if (reg_bytes*8 > 255) {
+                Console::print("ACPI generic address register width %u trimmed at 255 bits\n", reg_bytes*8);
+                bits = 255;
+            }
+        }
+
+        void init (uint8 reg_asid, unsigned reg_bytes, uint64 reg_addr)
+        {
+            init(static_cast<Asid>(reg_asid), reg_bytes, reg_addr);
         }
 };
 
