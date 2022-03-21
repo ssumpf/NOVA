@@ -51,7 +51,7 @@ class Dmar_qi_ctx : public Dmar_qi
 class Dmar_qi_tlb : public Dmar_qi
 {
     public:
-        Dmar_qi_tlb(Mode mode, uint64 did) : Dmar_qi (0x22LL | (uint64(mode) << 4) | ((did & 0xffffULL) << 16)) {}
+        Dmar_qi_tlb(Mode mode, uint64 did) : Dmar_qi (0x2ULL | (uint64(mode) << 4) | ((did & 0xffffULL) << 16)) {}
 };
 
 class Dmar_qi_iec : public Dmar_qi
