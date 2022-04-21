@@ -94,9 +94,6 @@ void Gsi::vector (unsigned vector)
     if (gsi == Keyb::gsi)
         Keyb::interrupt();
 
-    else if (gsi == Acpi::gsi)
-        Acpi::interrupt();
-
     else if (gsi_table[gsi].trg)
         mask (gsi);
 

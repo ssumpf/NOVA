@@ -92,7 +92,6 @@ class Acpi
         static Acpi_gas gpe1_ena;
         static Acpi_gas reset_reg;
 
-        static uint32   tmr_ovf;
         static uint32   feature;
         static uint8    reset_val;
 
@@ -102,9 +101,6 @@ class Acpi
         static void hw_write (Acpi_gas *, unsigned, bool = false);
         static void write (Register, unsigned);
         static void clear (Register, unsigned);
-
-        ALWAYS_INLINE
-        static inline mword tmr_msb() { return feature & 0x100 ? 31 : 23; }
 
     public:
         static unsigned irq;
@@ -117,9 +113,7 @@ class Acpi
         static inline Paddr p_xsdt() { return xsdt; }
 
         static void delay (unsigned);
-        static uint64 time();
         static void reset();
-        static void interrupt();
 
         INIT
         static void setup();
