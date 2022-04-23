@@ -871,18 +871,40 @@ void Ec::sys_sc_ctrl()
     Sc *sc = static_cast<Sc *>(cap.obj());
 
     uint64 sc_time = sc->time;
+    uint64 ec_time = 0;
 
     if (EXPECT_FALSE (r->op() && sc->space == static_cast<Space_obj *>(&Pd::kern))) {
         if (r->op() == 1)
             sc_time = Sc::cross_time[sc->cpu];
         else if (r->op() == 2)
             sc_time = Sc::killed_time[sc->cpu];
-        else if (r->op() == 3)
-            sc_time = Ec::killed_time[sc->cpu];
+        else if (r->op() == 3) {
+            sc_time = Sc::killed_time[sc->cpu];
+            ec_time = Ec::killed_time[sc->cpu];
+        }
         else
             sys_finish<Sys_regs::BAD_PAR>();
     } else
         sc->measured();
+
+    if (r->op() == 3) { /* sc and ec time requested */
+        if (!ec_time) {
+            Kobject *obj = Space_obj::lookup (r->ec()).obj();
+
+            if (EXPECT_FALSE (obj->type() == Kobject::EC)) {
+                Ec *ec = static_cast<Ec *>(obj);
+
+                ec_time = ec->time;
+                ec->measured();
+            }
+        }
+
+        uint32 dummy;
+        r->set_time (div64 (sc_time * 1000, Lapic::freq_tsc, &dummy),
+                     div64 (ec_time * 1000, Lapic::freq_tsc, &dummy));
+
+        sys_finish<Sys_regs::SUCCESS>();
+    }
 
     uint32 dummy;
     r->set_time (div64 (sc_time * 1000, Lapic::freq_tsc, &dummy));
