@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include "lapic.hpp"
 #include "types.hpp"
 #include "x86.hpp"
 #include "stdio.hpp"

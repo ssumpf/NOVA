@@ -179,11 +179,14 @@ void Space_mem::shootdown(Pd * local)
         if (!Cpu::preemption)
             asm volatile ("sti" : : : "memory");
 
-        while (Counter::remote (cpu, 1) == ctr)
-            pause();
+        bool sent = Lapic::pause_loop_until(500, [&] {
+            return (Counter::remote (cpu, 1) == ctr); });
 
         if (!Cpu::preemption)
             asm volatile ("cli" : : : "memory");
+
+        if (!sent)
+            trace (0, "IPI timeout cpu %u->%u", Cpu::id, cpu);
     }
 }
 

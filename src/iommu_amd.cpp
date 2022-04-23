@@ -372,9 +372,10 @@ void Iommu::Amd::flush(unsigned const rid, unsigned const type, bool const wait)
 
     write<uint64>(REG_CMD_TAIL, tail);
 
-    do {
-        pause();
-    } while (ring_mask(read<uint64>(REG_CMD_HEAD)) != tail);
+    if (!Lapic::pause_loop_until(500, [&] {
+      return (ring_mask(read<uint64>(REG_CMD_HEAD)) != tail);
+    }))
+      trace(TRACE_IOMMU, "timeout - iommu flush");
 }
 
 void Iommu::Amd::flush_pgt (Pd &p)
@@ -393,9 +394,10 @@ void Iommu::Amd::flush_pgt (Pd &p)
 
     write<uint64>(REG_CMD_TAIL, tail);
 
-    do {
-        pause();
-    } while (ring_mask(read<uint64>(REG_CMD_HEAD)) != tail);
+    if (!Lapic::pause_loop_until(500, [&] {
+      return (ring_mask(read<uint64>(REG_CMD_HEAD)) != tail);
+    }))
+      trace(TRACE_IOMMU, "timeout - iommu flush pgt");
 }
 
 void Iommu::Amd::flush_pgt (uint16 const rid, Pd &p)

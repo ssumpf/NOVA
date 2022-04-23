@@ -52,8 +52,8 @@ void Console_serial::putc (int c)
     if (c == '\n')
         putc ('\r');
 
-    while (EXPECT_FALSE (!(in (LSR) & 0x20)))
-        pause();
+    Lapic::pause_loop_until(500, [&] {
+      return (EXPECT_FALSE (!(in (LSR) & 0x20))); });
 
     out (THR, c);
 }

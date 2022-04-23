@@ -159,4 +159,21 @@ class Lapic
 
         REGPARM (1)
         static void ipi_vector (unsigned) asm ("ipi_vector");
+
+        template <typename T>
+        static bool pause_loop_until(uint64 ms, T const &fn)
+        {
+           bool     timeout = false;
+           unsigned r       = 0;
+           uint64   tsc     = rdtsc();
+
+           while (!timeout && fn()) {
+             pause();
+
+             if (freq_tsc && ((++r % 100) == 0))
+                timeout = (tsc + (ms * freq_tsc)) < rdtsc();
+           }
+
+           return !timeout;
+        }
 };
