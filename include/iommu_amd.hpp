@@ -146,10 +146,10 @@ class Iommu::Amd : public Iommu::Interface, public List<Amd>
                 write<uint64>(REG_EVENT_TAIL, read<uint64>(REG_EVENT_TAIL) | ~ring_mask());
                 write<uint64>(REG_EVENT_HEAD, read<uint64>(REG_EVENT_HEAD) | ~ring_mask());
 
-                /* reset */
-                status = read<uint64>(REG_STATUS);
-                write<uint64>(REG_STATUS, status | 0x1);
             }
+
+            /* ack */
+            write<uint64>(REG_STATUS, status);
 
             if (reenable)
                 write<uint64>(REG_CTRL, ctrl | 8ULL | 4ULL);

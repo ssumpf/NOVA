@@ -357,12 +357,14 @@ void Iommu::Amd::flush(unsigned const rid, unsigned const type, bool const wait)
 
     uint64 *inv = reinterpret_cast<uint64 *>(cmd_base + tail);
     *inv = (uint64(type) << 60) | uint64(rid & 0xffffu);
+    *(++inv) = 0ull;
     tail = (tail + 16) % ring_size;
 
     if (wait) {
         inv = reinterpret_cast<uint64 *>(cmd_base + tail);
 
         *inv = (1ull /* cmd wait */ << 60);
+        *(++inv) = 0ull;
         tail = (tail + 16) % ring_size;
     }
 
