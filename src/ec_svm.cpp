@@ -162,10 +162,11 @@ void Ec::handle_svm()
 {
     current->regs.vmcb->tlb_control = 0;
 
-    mword reason = static_cast<mword>(current->regs.vmcb->exitcode);
+    mword reason = VM_EXIT_NOSUPP;
 
-    switch (reason) {
+    switch (current->regs.vmcb->exitcode) {
         case -1U:               // Invalid state
+        case -1ULL:             // Invalid state
             reason = VM_EXIT_INVSTATE;
             break;
         case 0x400:             // NPT
@@ -173,10 +174,14 @@ void Ec::handle_svm()
             current->regs.nst_error = static_cast<mword>(current->regs.vmcb->exitinfo1);
             current->regs.nst_fault = static_cast<mword>(current->regs.vmcb->exitinfo2);
             break;
+        default:
+            reason = static_cast<mword>(current->regs.vmcb->exitcode);
+            break;
     }
 
     /* all unsupported exits are remapped to a specific exit */
     if (reason >= NUM_VMI) {
+        trace (TRACE_SVM, "svm: unsupported exit reason=%lx\n", reason);
         reason = VM_EXIT_NOSUPP;
     }
 
