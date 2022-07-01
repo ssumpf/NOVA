@@ -1093,6 +1093,11 @@ void Ec::sys_assign_gsi()
         sys_finish<Sys_regs::BAD_DEV>();
     }
 
+    if (r->cfg()) {
+        Gsi::gsi_table[gsi].trg = r->trg();
+        Gsi::gsi_table[gsi].pol = r->pol();
+    }
+
     r->set_msi (Gsi::set (gsi, r->cpu(), rid));
 
     sys_finish<Sys_regs::SUCCESS>();
